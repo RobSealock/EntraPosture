@@ -178,35 +178,57 @@ it is.
 
 - Azure RBAC is discovery-only unless `-ArmScope` is supplied; no control currently evaluates it
   directly.
-- 2 of 17 designed agent-identity findings remain unbuilt: `AGT-010`/`016` (blocked on an
-  inactivity-threshold evidence gap -- no sign-in-log domain exists yet, the same kind of gap
-  `USR-005` closed for ordinary users but agent identities don't yet have their own equivalent).
-  See [`docs/VNext.md`](docs/VNext.md) for the full design record.
+- 2 of 17 designed agent-identity findings remain unbuilt: `AGT-010`/`016` (see the
+  beta-API-only note below).
 - `AGT-015`'s evidence collection is delegated-only -- Microsoft's own `ownedObjects` endpoint has
   no application-permission path at all -- so it's structurally `NotEvaluated` under
   `-AuthMode Certificate`, independent of granted permissions.
-- ~109 rows of the broader EntraFalcon/Conditional Access Validator feature-parity matrix remain
-  uncatalogued as native controls -- a mix of controls needing genuinely new evidence collection
-  (e.g. `USR-010`/`011` need authentication-methods data) and lower-confidence candidates pending
-  field-capture verification. See [`docs/VNext.md`](docs/VNext.md) for the tracked backlog.
+- The EntraFalcon/Conditional Access Validator feature-parity matrix's own canonical registry
+  (`15-feature-parity-matrix.md` section 3.3, 82 findings) is now fully triaged: 72 built as
+  native controls, 10 deliberately excluded or deferred, each with a specific, documented reason
+  rather than silently dropped:
+  - `ENT-002`, `AGT-010`, `AGT-016` (inactive enterprise apps / agent identities / agent users) --
+    all three need `servicePrincipalSignInActivity`, confirmed **beta-only** in Microsoft Graph
+    with no v1.0/stable equivalent (the full v1.0 `servicePrincipal` property table has no
+    sign-in-related field at all). This project has never called a Preview/beta endpoint from any
+    of its ~30 collectors and does not start here.
+  - `USR-010`/`011`/`012` (weak protection of privileged users, no MFA factors registered) --
+    need `/users/{id}/authentication/methods`: a new permission, a per-user N+1 fetch, polymorphic
+    per-method-type parsing, and (for 010/011) no crisp Microsoft-documented definition of "weak."
+  - `USR-009` (least privilege, Azure) -- would need a new curated "Tier-0 Azure Role" list this
+    project has never built; every existing Azure-role control treats "any Azure role" as the
+    signal, not tier-graded, and introducing tier-grading for one control alone is a broader
+    design decision out of scope here (its Entra ID sibling, `USR-006`, is built).
+  - `CAP-011` (CA policy includes roles with scoped assignments) -- needs administrative-unit-
+    scoped role assignment evidence; this project's only role-assignment collector doesn't return
+    AU-scoped assignments at all.
+  - `USR-013` (unnecessary on-premises sync) -- no crisp Microsoft-documented threshold for
+    "unnecessary" exists to build against.
+  - `ENT-013` (known malicious enterprise applications) -- the matrix's own disposition already
+    flags this as pending triage, dependent on a maintained malicious-app signature source this
+    project has no citable provenance for.
+  See [`docs/VNext.md`](docs/VNext.md) for the full triage record.
 - Live What-If comparison (`scripts/Compare-WhatIf.ps1`) requires the tenant to be licensed for
   Conditional Access (Entra ID P1+) -- confirmed to fail cleanly, not silently, against an
   unlicensed tenant.
 
-74 native controls are built and shipped, including `AR-002` (access review instance health),
+87 native controls are built and shipped, including `AR-002` (access review instance health),
 `AUTHCTX-001`/`002` (authentication context coverage and effectiveness), `CA-002` (full
 combinatorial Conditional Access gap analysis, generalizing beyond `CA-001`'s bounded 16-scenario
-grid), `EM-001`/`EM-002` (entitlement management), the full `PIM-002` through `PIM-009` set, 15
-agent-identity findings (`AGT-001`-`009`, `011`-`015`, `017`), PIM-for-Groups (`PIMG-001`/`002`),
-10 Conditional Access policy-shape checks (`CAP-001`-`010`), 3 guest/external collaboration checks
-(`COL-001`-`003`), foreign/internal enterprise application and managed identity role-holding and
-credential checks (`ENT-001`, `ENT-006`/`007`/`011`/`012`, `MAI-002`/`003`), app-registration/
-hybrid-identity checks (`APP-001`/`002`, `USR-007`/`008`), enterprise application/app-registration
-ownership checks (`ENT-003`/`008`, `APP-003`), inactive-user detection (`USR-005`), and the
-"Extensive API Privileges" family (`ENT-004`/`005`/`009`/`010`, `AGT-002`/`003`/`006`/`007`,
-`MAI-001`) -- one shared, curated-dangerous-permission evaluator every foreign/internal
-enterprise-application, agent-identity, and managed-identity population reuses, rather than nine
-independently-scoped checks.
+grid), `EM-001`/`EM-002` (entitlement management), the full `PIM-002` through `PIM-009` set (plus
+`PIM-001`, basic PIM adoption), 15 agent-identity findings (`AGT-001`-`009`, `011`-`015`, `017`),
+PIM-for-Groups (`PIMG-001`/`002`), 10 Conditional Access policy-shape checks (`CAP-001`-`010`), 3
+guest/external collaboration checks (`COL-001`-`003`), foreign/internal enterprise application and
+managed identity role-holding and credential checks (`ENT-001`, `ENT-006`/`007`/`011`/`012`,
+`MAI-002`/`003`), app-registration/hybrid-identity checks (`APP-001`/`002`, `USR-007`/`008`),
+enterprise application/app-registration ownership checks (`ENT-003`/`008`, `APP-003`),
+inactive-user detection (`USR-005`), the "Extensive API Privileges" family
+(`ENT-004`/`005`/`009`/`010`, `AGT-002`/`003`/`006`/`007`, `MAI-001`) -- one shared,
+curated-dangerous-permission evaluator every foreign/internal enterprise-application,
+agent-identity, and managed-identity population reuses, rather than nine independently-scoped
+checks -- and the 109-row feature-parity-matrix backlog completion pass: password policy
+(`PAS-001`-`005`), tenant-wide user/group policy settings (`USR-002`/`003`/`004`/`006`,
+`GRP-002`/`003`/`004`).
 Conditional Access drift detection (`Compare-EntraPosture`), named-location resolution,
 device-filter rule-language evaluation, and
 workload-identity sign-in scenarios are also built.

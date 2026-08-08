@@ -98,8 +98,34 @@ deliberately instead of incidentally.
    instance of this project's array-collapse-at-a-return-boundary bug class was found and fixed in
    the process -- see §40 for the repro (a bare `Get-EntraPosture*` function call used directly as
    a `foreach`/`@()` source, rather than assigned to a variable first, silently collapses a
-   multi-record result down to one phantom element). ~109 rows remain (of the original ~150
-   estimate).
+   multi-record result down to one phantom element).
+
+   **Batches 10-11, same day** (`00-open-questions.md` §41): the "complete the 109-row backlog"
+   pass -- every one of the 82 canonical findings in `15-feature-parity-matrix.md` section 3.3 is
+   now triaged. Batch 10 (12 controls): `PAS-001`-`005` (extends the GroupSetting infrastructure
+   to also read the "Password Rule Settings" groupSettingTemplate, each evaluator applying that
+   field's own documented default when uncustomized), `USR-002`/`003`/`004` (AuthorizationPolicy
+   field extensions), `GRP-002`/`003`/`004` (Group.Unified groupSetting and Group entity field
+   extensions -- `visibility`/`membershipRule` were already part of the default `GET /v1.0/groups`
+   response, no `$select` change needed), `PIM-001` (reuses the existing `PimEligible`
+   relationship, zero new evidence). Batch 11 (1 control): `USR-006` (least-privilege user count,
+   reusing `DirectoryRoleAssignment` + `TransitiveMemberOf` to count Tier-0 role holders both
+   direct and group-derived). 87 controls now ship (up from 74).
+
+   Ten canonical findings from the 82-row registry are deliberately excluded/deferred with
+   documented reasons, not silently dropped: `ENT-002`/`AGT-010`/`AGT-016` (need
+   `servicePrincipalSignInActivity`, confirmed **beta-only** in Microsoft Graph -- the full v1.0
+   `servicePrincipal` property table has no sign-in field at all, and this project has never used
+   a Preview/beta endpoint across any of its ~30 collectors); `USR-010`/`011`/`012` (need
+   `/users/{id}/authentication/methods`, already flagged in batch 6/§36); `USR-009` (would need a
+   new curated "Tier-0 Azure Role" list -- every existing Azure-role control in this project
+   treats "any Azure role" as the signal, not tier-graded); `CAP-011` (needs AU-scoped role
+   assignment evidence, already flagged in §35); `USR-013` (no crisp documented "unnecessary sync"
+   threshold, already flagged in §35); `ENT-013` (the matrix's own disposition already flags this
+   as pending triage, dependent on a malicious-app signature source with no citable provenance).
+   With this, VNext build order item 2 is complete: every row in the matrix's own canonical
+   registry has either shipped as a native control or has a documented, specific reason it did
+   not.
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

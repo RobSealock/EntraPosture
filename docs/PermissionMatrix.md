@@ -15,15 +15,15 @@ operation exists anywhere in this codebase).
 
 | Permission | Collector(s) | Report section | Controls fed |
 |---|---|---|---|
-| `RoleManagement.Read.Directory` | DirectoryRoleAssignments, PimEligibility | Privileged Roles | PRIV-001, PIM-002, CA-001 |
-| `Policy.Read.All` | ConditionalAccessPolicies, CrossTenantAccessPolicy, CrossTenantAccessPolicyPartners, TenantPolicies, NamedLocations | Conditional Access, Cross-Tenant Access, Consent and Authorization | CA-001, XTA-001, XTA-002, AC-001, AC-002, USR-001, GRP-001 |
-| `User.Read.All` | Users | Identity | *(breadth collector -- no control depends on it directly yet)* |
-| `Group.Read.All` | Groups | Identity | GRP-005 |
+| `RoleManagement.Read.Directory` | DirectoryRoleAssignments, PimEligibility | Privileged Roles | PRIV-001, PIM-001, PIM-002, CA-001, USR-006 |
+| `Policy.Read.All` | ConditionalAccessPolicies, CrossTenantAccessPolicy, CrossTenantAccessPolicyPartners, TenantPolicies, NamedLocations | Conditional Access, Cross-Tenant Access, Consent and Authorization | CA-001, XTA-001, XTA-002, AC-001, AC-002, USR-001/002/003/004, GRP-001/004, PAS-005 |
+| `User.Read.All` | Users | Identity | USR-006/007/008 |
+| `Group.Read.All` | Groups | Identity | GRP-003/004/005, USR-006 |
 | `GroupMember.Read.All` | Groups | Identity | GRP-005 |
 | `Application.Read.All` | Applications, ServicePrincipals, ServicePrincipalApiPermissions | Applications | APP-001/002/003, ENT-001/003/004/006/007/008/009/010/011/012, AGT-002/003/006/007, MAI-001/002/003 |
 | `AdministrativeUnit.Read.All` | AdministrativeUnits | Identity | *(breadth collector -- no control depends on it directly yet)* |
 | `AccessReview.Read.All` | AccessReviewDefinitions | Access Reviews | AR-001, AR-002 |
-| `AuthenticationContext.Read.All` | AuthenticationContexts | Conditional Access | AUTHCTX-001/002 not yet built (see `00-open-questions.md`) |
+| `AuthenticationContext.Read.All` | AuthenticationContexts | Conditional Access | AUTHCTX-001, AUTHCTX-002 |
 | `Organization.Read.All` | TenantConfiguration | Tenant Configuration | *(breadth collector -- no control depends on it directly yet)* |
 | `Policy.Read.AuthenticationMethod` | AuthenticationStrengthPolicies | Conditional Access | *(feeds `Resolve-EntraPostureAuthenticationStrengthRequirement`, not a control directly -- see `00-open-questions.md` item 5)* |
 | `RoleManagementPolicy.Read.Directory` | RoleManagementPolicyAssignments | Privileged Roles, Conditional Access | AUTHCTX-001, AUTHCTX-002, PIM-003, PIM-004, PIM-005, PIM-006, PIM-007, PIM-008, PIM-009 |
@@ -35,7 +35,7 @@ operation exists anywhere in this codebase).
 | `Directory.Read.All` | AgentUsers (ownedObjects N+1 only), ServicePrincipalApiPermissions (oauth2PermissionGrants half only) | Agent Identities, Applications | AGT-015; ENT-005/010, AGT-003/007 |
 | `PrivilegedEligibilitySchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001 |
 | `PrivilegedAssignmentSchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001, PIMG-002 |
-| `GroupSettings.Read.All` | GroupSettings | External Collaboration | COL-003 |
+| `GroupSettings.Read.All` | GroupSettings | External Collaboration, Passwords, Groups | COL-003, PAS-001/002/003/004, GRP-002 |
 | `AuditLog.Read.All` | UserSignInActivity | Identity | USR-005 (also requires the tenant to be licensed for Entra ID P1 or P2 -- see below) |
 
 **Live What-If comparison** (the ad hoc `scripts/Compare-WhatIf.ps1` utility, not part of the
