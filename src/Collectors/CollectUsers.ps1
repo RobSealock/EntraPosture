@@ -20,7 +20,7 @@ function Get-EntraPostureUserCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'Users' `
         -RequiredPermissions @('User.Read.All') `
         -EndpointsUsed @('/v1.0/users') `
-        -AffectedControlIds @('USR-007', 'USR-008', 'USR-006') `
+        -AffectedControlIds @('USR-007', 'USR-008', 'USR-006', 'USR-009') `
         -AffectedReportSections @('Identity')
 }
 

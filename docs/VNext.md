@@ -126,6 +126,42 @@ deliberately instead of incidentally.
    With this, VNext build order item 2 is complete: every row in the matrix's own canonical
    registry has either shipped as a native control or has a documented, specific reason it did
    not.
+
+   **Ranked-order continuation, same day** (`00-open-questions.md` §41 continued): with item 2
+   closed, the 10 deferred findings were re-ranked by value rather than ID order and built in that
+   order until the first genuine blocker. **Batch 12** (`USR-012`, "users without registered MFA
+   factors"): re-examined against Microsoft's own guidance on
+   `/reports/authenticationMethods/userRegistrationDetails` -- explicitly the recommended API for
+   *"scenarios where you need to iterate over your entire user population for auditing or
+   security check purposes,"* as opposed to the per-user `/authentication/methods` endpoint this
+   finding was originally scoped against in batch 6/§36. A single bulk paginated call
+   (`AuditLog.Read.All`, already used by `USR-005`) replaces what would otherwise have been an
+   N+1 fetch with polymorphic per-method-type parsing -- the deferral reason from §36 no longer
+   applied once the correct API was identified. New `UserRegistrationDetails` evidence domain;
+   fails a user whose `isMfaRegistered` field is `false`. 88 controls now ship (up from 87).
+   **Batch 13** (`USR-009`, "least privilege, Azure"): the Tier-0 Azure role list `USR-009` was
+   deferred for not having (`TierZeroAzureRoleList.ps1`) was built by independently reading each
+   candidate role's own live Actions/NotActions/assignableScopes JSON on Azure's "Built-in roles
+   for Privileged" reference page, rather than trusting a comparable community tool's own
+   5-role categorization at face value -- Owner, User Access Administrator, and Role Based Access
+   Control Administrator are included (each has an unrestricted or sufficient path to
+   self-escalate via role assignment); Contributor and Reservations Administrator are excluded,
+   both with a specific technical reason (Contributor's own `NotActions` explicitly blocks
+   `Microsoft.Authorization/*/Write`/`/Delete`/`elevateAccess/Action`; Reservations
+   Administrator's `assignableScopes` is fixed to `/providers/Microsoft.Capacity` only, not
+   general subscription scope). Same shape as `USR-006` (its Entra ID sibling): counts enabled
+   users holding a Tier-0 Azure role directly or via a group's `TransitiveMemberOf` membership,
+   deduplicated, against a fixed 8-user threshold (EntraFalcon's own lowest confidence boundary
+   for this finding). Zero new evidence collection -- reuses `AzureRoleAssignment`, `User`, and
+   `TransitiveMemberOf`, already collected for `USR-006`/`USR-008`/`ENT-007`/`012`/`MAI-003`/
+   `AGT-005`/`009`/`012`/`014`; only `AffectedControlIds` needed extending on the three
+   collectors involved. 89 controls now ship (up from 88).
+
+   Eight canonical findings remain deferred, each still with a documented, specific reason:
+   `ENT-002`/`AGT-010`/`AGT-016` (beta-only `servicePrincipalSignInActivity`); `USR-010`/`011`
+   (no crisp Microsoft-documented definition of "weak" MFA protection yet -- next in the ranked
+   order); `CAP-011` (needs AU-scoped role assignment evidence); `USR-013` (no crisp "unnecessary
+   sync" threshold); `ENT-013` (no citable malicious-app signature source).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

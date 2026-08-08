@@ -17,9 +17,9 @@ operation exists anywhere in this codebase).
 |---|---|---|---|
 | `RoleManagement.Read.Directory` | DirectoryRoleAssignments, PimEligibility | Privileged Roles | PRIV-001, PIM-001, PIM-002, CA-001, USR-006 |
 | `Policy.Read.All` | ConditionalAccessPolicies, CrossTenantAccessPolicy, CrossTenantAccessPolicyPartners, TenantPolicies, NamedLocations | Conditional Access, Cross-Tenant Access, Consent and Authorization | CA-001, XTA-001, XTA-002, AC-001, AC-002, USR-001/002/003/004, GRP-001/004, PAS-005 |
-| `User.Read.All` | Users | Identity | USR-006/007/008 |
-| `Group.Read.All` | Groups | Identity | GRP-003/004/005, USR-006 |
-| `GroupMember.Read.All` | Groups | Identity | GRP-005 |
+| `User.Read.All` | Users | Identity | USR-006/007/008/009 |
+| `Group.Read.All` | Groups | Identity | GRP-003/004/005, USR-006, USR-009 |
+| `GroupMember.Read.All` | Groups | Identity | GRP-005, USR-009 |
 | `Application.Read.All` | Applications, ServicePrincipals, ServicePrincipalApiPermissions | Applications | APP-001/002/003, ENT-001/003/004/006/007/008/009/010/011/012, AGT-002/003/006/007, MAI-001/002/003 |
 | `AdministrativeUnit.Read.All` | AdministrativeUnits | Identity | *(breadth collector -- no control depends on it directly yet)* |
 | `AccessReview.Read.All` | AccessReviewDefinitions | Access Reviews | AR-001, AR-002 |
@@ -37,6 +37,7 @@ operation exists anywhere in this codebase).
 | `PrivilegedAssignmentSchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001, PIMG-002 |
 | `GroupSettings.Read.All` | GroupSettings | External Collaboration, Passwords, Groups | COL-003, PAS-001/002/003/004, GRP-002 |
 | `AuditLog.Read.All` | UserSignInActivity | Identity | USR-005 (also requires the tenant to be licensed for Entra ID P1 or P2 -- see below) |
+| `AuditLog.Read.All` | UserRegistrationDetails | Identity | USR-012 (Microsoft's own documented recommendation for bulk per-user MFA-registration auditing, over the per-user `/authentication/methods` endpoint -- see `00-open-questions.md` §41) |
 
 **Live What-If comparison** (the ad hoc `scripts/Compare-WhatIf.ps1` utility, not part of the
 core assessment pipeline) additionally calls `POST /identity/conditionalAccess/evaluate`, whose
@@ -91,17 +92,16 @@ Azure RBAC collection is skipped entirely, not silently incomplete, when `-ArmSc
 When you do supply it, the app's **service principal** needs an Azure role assignment (the
 built-in **Reader** role satisfies all four) granting these actions at the scope(s) you assess:
 
-| Action | Collector | Report section |
-|---|---|---|
-| `Microsoft.Resources/subscriptions/read` | AzureSubscriptions | Azure RBAC |
-| `Microsoft.Management/managementGroups/read` | AzureManagementGroups | Azure RBAC |
-| `Microsoft.Authorization/roleAssignments/read` | AzureRoleAssignments | Azure RBAC |
-| `Microsoft.Authorization/roleDefinitions/read` | AzureRoleDefinitions | Azure RBAC |
+| Action | Collector | Report section | Controls fed |
+|---|---|---|---|
+| `Microsoft.Resources/subscriptions/read` | AzureSubscriptions | Azure RBAC | *(breadth collector -- no control depends on it directly)* |
+| `Microsoft.Management/managementGroups/read` | AzureManagementGroups | Azure RBAC | *(breadth collector -- no control depends on it directly)* |
+| `Microsoft.Authorization/roleAssignments/read` | AzureRoleAssignments | Azure RBAC | AGT-005/009/012/014, MAI-003, ENT-007/012, USR-008/009 |
+| `Microsoft.Authorization/roleDefinitions/read` | AzureRoleDefinitions | Azure RBAC | *(breadth collector -- no control depends on it directly)* |
 
-No control currently depends on Azure RBAC evidence directly (breadth/discovery collectors only,
-per each collector's own `AffectedControlIds`) -- collecting it populates the report's Azure RBAC
-section and is available for future controls, but a Graph-only run with no `-ArmScope` is a fully
-supported, complete-for-what-it-attempts assessment.
+A Graph-only run with no `-ArmScope` skips Azure RBAC collection entirely, not silently -- every
+control fed by `AzureRoleAssignments` above degrades to `NotEvaluated` (missing evidence), never a
+silent Pass, and every other control in the assessment is unaffected.
 
 ## What a narrower grant actually gets you
 

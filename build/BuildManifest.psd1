@@ -255,6 +255,8 @@
         'src/Controls/EvaluatePimEntraRoleAdoption.ps1'
         'src/Controls/EvaluateEntraLeastPrivilege.ps1'
         'src/Controls/EvaluateUserMfaRegistration.ps1'
+        'src/Controls/TierZeroAzureRoleList.ps1'
+        'src/Controls/EvaluateAzureLeastPrivilege.ps1'
         'src/Reporting/BuildAssessmentDocument.ps1'
         'src/Reporting/RedactionApplication.ps1'
         'src/Reporting/RenderHtmlReport.ps1'

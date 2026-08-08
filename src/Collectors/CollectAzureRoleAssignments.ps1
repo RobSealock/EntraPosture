@@ -24,7 +24,7 @@ function Get-EntraPostureAzureRoleAssignmentCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'AzureRoleAssignments' `
         -RequiredPermissions @('Microsoft.Authorization/roleAssignments/read') `
         -EndpointsUsed @('/{scope}/providers/Microsoft.Authorization/roleAssignments') `
-        -AffectedControlIds @('AGT-005', 'AGT-009', 'AGT-012', 'AGT-014', 'MAI-003', 'ENT-007', 'ENT-012', 'USR-008') `
+        -AffectedControlIds @('AGT-005', 'AGT-009', 'AGT-012', 'AGT-014', 'MAI-003', 'ENT-007', 'ENT-012', 'USR-008', 'USR-009') `
         -AffectedReportSections @('Azure RBAC')
 }
 

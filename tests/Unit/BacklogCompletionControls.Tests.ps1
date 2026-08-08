@@ -21,7 +21,9 @@ BeforeAll {
         'src/Controls/EvaluatePublicM365Groups.ps1',
         'src/Controls/EvaluateDangerousDynamicGroupRule.ps1',
         'src/Controls/EvaluatePimEntraRoleAdoption.ps1',
-        'src/Controls/EvaluateEntraLeastPrivilege.ps1'
+        'src/Controls/EvaluateEntraLeastPrivilege.ps1',
+        'src/Controls/TierZeroAzureRoleList.ps1',
+        'src/Controls/EvaluateAzureLeastPrivilege.ps1'
     )) {
         . (Join-Path $script:RepoRoot $relPath)
     }
@@ -105,6 +107,18 @@ BeforeAll {
             relationshipType = 'PimEligible'; assignmentState = 'Eligible'; scope = 'directory'
             provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }
             validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false }
+        }
+    }
+
+    function script:New-TestAzureRoleAssignmentEntity {
+        param([string]$Id, [string]$RoleDefinitionId, [string]$PrincipalId, [string]$PrincipalType)
+        return [ordered]@{
+            entityId = $Id; entityType = 'AzureRoleAssignment'; tenantScope = 't1'; displayName = $null
+            collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false
+            properties = [ordered]@{
+                roleDefinitionId = $RoleDefinitionId; principalId = $PrincipalId; principalType = $PrincipalType
+                scope = '/subscriptions/sub1'; createdOn = '2026-01-01T00:00:00Z'
+            }
         }
     }
 }
@@ -280,5 +294,53 @@ Describe 'USR-006: Test-EntraPostureEntraLeastPrivilegeControl' {
         )
         $result = Test-EntraPostureEntraLeastPrivilegeControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
         $result[0].Status | Should -Be 'Pass'
+    }
+}
+
+Describe 'USR-009: Test-EntraPostureAzureLeastPrivilegeControl' {
+    It 'counts direct and group-transitive Tier-0 Azure role holders, deduplicated, against the 8-user threshold, excluding non-Tier-0 roles, disabled users, and non-user principals' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-users.jsonl' -Records @(
+            1..8 | ForEach-Object {
+                [ordered]@{ entityId = "u$_"; entityType = 'User'; tenantScope = 't1'; displayName = "u$_"; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } }
+            }
+            [ordered]@{ entityId = 'u-disabled'; entityType = 'User'; tenantScope = 't1'; displayName = 'u-disabled'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $false } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/azure-role-assignments.jsonl' -Records @(
+            (New-TestAzureRoleAssignmentEntity -Id 'ra1' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635' -PrincipalId 'u1' -PrincipalType 'User'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra2' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/18d7d88d-d35e-4fb5-a5c3-7773c20a72d9' -PrincipalId 'u2' -PrincipalType 'User'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra3' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/f58310d9-a9f6-439a-9e8d-f62e7b41a168' -PrincipalId 'u3' -PrincipalType 'User'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra4' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635' -PrincipalId 'u4' -PrincipalType 'User'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra5' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635' -PrincipalId 'u5' -PrincipalType 'User'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra6' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635' -PrincipalId 'grp1' -PrincipalType 'Group'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra-contributor' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c' -PrincipalId 'u-disabled' -PrincipalType 'User'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra-disabled-owner' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635' -PrincipalId 'u-disabled' -PrincipalType 'User')
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-group-memberships.jsonl' -Records @(
+            [ordered]@{ relationshipId = 'u6::grp1::TransitiveMemberOf'; sourceEntityId = 'u6'; targetEntityId = 'grp1'; relationshipType = 'TransitiveMemberOf'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $true } },
+            [ordered]@{ relationshipId = 'u7::grp1::TransitiveMemberOf'; sourceEntityId = 'u7'; targetEntityId = 'grp1'; relationshipType = 'TransitiveMemberOf'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $true } },
+            [ordered]@{ relationshipId = 'u8::grp1::TransitiveMemberOf'; sourceEntityId = 'u8'; targetEntityId = 'grp1'; relationshipType = 'TransitiveMemberOf'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $true } }
+        )
+        $result = Test-EntraPostureAzureLeastPrivilegeControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $result[0].Status | Should -Be 'Fail'
+        $result[0].ReasonCode | Should -Be 'USR-009-EXCESSIVE-TIER-ZERO-USERS'
+        $result[0].Rationale | Should -Match '8 enabled users'
+    }
+
+    It 'passes when below the threshold and when no Azure RBAC evidence was collected' {
+        $dirNone = New-TestSnapshotDir
+        $resultNone = Test-EntraPostureAzureLeastPrivilegeControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dirNone)
+        $resultNone[0].Status | Should -Be 'Pass'
+        $resultNone[0].ReasonCode | Should -Be 'USR-009-TIER-ZERO-USERS-WITHIN-RANGE'
+
+        $dirFew = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dirFew -RelativePath 'evidence/entra-users.jsonl' -Records @(
+            [ordered]@{ entityId = 'u1'; entityType = 'User'; tenantScope = 't1'; displayName = 'u1'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } }
+        )
+        Write-TestEvidenceFile -Dir $dirFew -RelativePath 'evidence/azure-role-assignments.jsonl' -Records @(
+            (New-TestAzureRoleAssignmentEntity -Id 'ra1' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635' -PrincipalId 'u1' -PrincipalType 'User')
+        )
+        $resultFew = Test-EntraPostureAzureLeastPrivilegeControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dirFew)
+        $resultFew[0].Status | Should -Be 'Pass'
     }
 }
