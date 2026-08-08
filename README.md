@@ -178,26 +178,32 @@ it is.
 
 - Azure RBAC is discovery-only unless `-ArmScope` is supplied; no control currently evaluates it
   directly.
-- 8 of 17 designed agent-identity findings remain unbuilt: `AGT-002`/`003`/`006`/`007` (need a
+- 6 of 17 designed agent-identity findings remain unbuilt: `AGT-002`/`003`/`006`/`007` (need a
   separately-scoped decision on whether "extensive API privilege" belongs to agent identities
-  specifically or to a general service-principal-permission-risk control), `AGT-010`/`016`
-  (blocked on an inactivity-threshold evidence gap -- no sign-in-log domain exists yet), and
-  `AGT-013`/`014` (blocked on an unconfirmed platform-reachability question). See
+  specifically or to a general service-principal-permission-risk control) and `AGT-010`/`016`
+  (blocked on an inactivity-threshold evidence gap -- no sign-in-log domain exists yet). See
   [`docs/VNext.md`](docs/VNext.md) for the full design record.
 - `AGT-015`'s evidence collection is delegated-only -- Microsoft's own `ownedObjects` endpoint has
   no application-permission path at all -- so it's structurally `NotEvaluated` under
   `-AuthMode Certificate`, independent of granted permissions.
+- ~125 rows of the broader EntraFalcon/Conditional Access Validator feature-parity matrix remain
+  uncatalogued as native controls -- a mix of controls needing genuinely new evidence collection
+  and lower-confidence candidates pending field-capture verification. See
+  [`docs/VNext.md`](docs/VNext.md) for the tracked backlog.
 - Live What-If comparison (`scripts/Compare-WhatIf.ps1`) requires the tenant to be licensed for
   Conditional Access (Entra ID P1+) -- confirmed to fail cleanly, not silently, against an
   unlicensed tenant.
 
-35 native controls are built and shipped, including `AR-002` (access review instance health),
+58 native controls are built and shipped, including `AR-002` (access review instance health),
 `AUTHCTX-001`/`002` (authentication context coverage and effectiveness), `CA-002` (full
 combinatorial Conditional Access gap analysis, generalizing beyond `CA-001`'s bounded 16-scenario
-grid), `EM-001`/`EM-002` (entitlement management), the full `PIM-002` through `PIM-009` set, 9
-agent-identity findings (`AGT-001`, `004`, `005`, `008`, `009`, `011`, `012`, `015`, `017`), and
-PIM-for-Groups (`PIMG-001`/`002`). Conditional Access drift detection (`Compare-EntraPosture`),
-named-location resolution, device-filter rule-language evaluation, and workload-identity sign-in
-scenarios are also built.
+grid), `EM-001`/`EM-002` (entitlement management), the full `PIM-002` through `PIM-009` set, 11
+agent-identity findings (`AGT-001`, `004`, `005`, `008`, `009`, `011`-`015`, `017`), PIM-for-Groups
+(`PIMG-001`/`002`), 10 Conditional Access policy-shape checks (`CAP-001`-`010`), 3 guest/external
+collaboration checks (`COL-001`/`002`), foreign/internal enterprise application and managed
+identity role-holding checks (`ENT-006`/`007`/`011`/`012`, `MAI-002`/`003`), and hybrid-identity/
+app-registration-secret checks (`USR-007`/`008`, `APP-001`). Conditional Access drift detection
+(`Compare-EntraPosture`), named-location resolution, device-filter rule-language evaluation, and
+workload-identity sign-in scenarios are also built.
 
 See [`docs/VNext.md`](docs/VNext.md) for the complete build log and what's still deferred.
