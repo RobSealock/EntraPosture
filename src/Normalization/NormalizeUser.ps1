@@ -28,6 +28,14 @@ function ConvertTo-EntraPostureUserEntity {
         regardless of what was actually requested. Fixed alongside this field addition in
         CollectUsers.ps1's own $select, not left for a future control to discover the hard way.
 
+        createdDateTime (added 2026-08-08, VNext build order item 2 batch 8, USR-005): unlike
+        signInActivity (a separate, P1/P2-licensed, AuditLog.Read.All-gated collector --
+        CollectUserSignInActivity.ps1), createdDateTime needs no extra permission or license, so
+        it lives on this always-available base User entity. USR-005's evaluator uses it as the
+        "never signed in" fallback (a user with no signInActivity.lastSuccessfulSignInDateTime at
+        all is judged inactive by account age instead), matching EntraFalcon's own precedent for
+        this exact finding while re-deriving the logic independently, not porting it.
+
         .PARAMETER RawUser
         One element of the Graph response's 'value' array.
 
@@ -75,6 +83,7 @@ function ConvertTo-EntraPostureUserEntity {
             accountEnabled    = if ($RawUser.Contains('accountEnabled')) { $RawUser['accountEnabled'] } else { $null }
             userType          = if ($RawUser.Contains('userType')) { $RawUser['userType'] } else { $null }
             onPremisesSyncEnabled = if ($RawUser.Contains('onPremisesSyncEnabled')) { $RawUser['onPremisesSyncEnabled'] } else { $null }
+            createdDateTime   = if ($RawUser.Contains('createdDateTime')) { $RawUser['createdDateTime'] } else { $null }
         }
         redacted         = $false
     }

@@ -73,11 +73,16 @@ function Invoke-EntraPostureUserCollector {
     if ($AllowlistOverride) { $sendParams['AllowlistOverride'] = $AllowlistOverride }
     if ($SchemeOverride -ne 'https') { $sendParams['SchemeOverride'] = $SchemeOverride }
 
-    # $select required -- accountEnabled/userType/onPremisesSyncEnabled are not in Microsoft's
-    # documented default property set for this endpoint (confirmed live 2026-08-08; see
-    # NormalizeUser.ps1's own DESCRIPTION for the citation and the pre-existing bug this fixes).
+    # $select required -- accountEnabled/userType/onPremisesSyncEnabled/createdDateTime are not
+    # in Microsoft's documented default property set for this endpoint (confirmed live
+    # 2026-08-08; see NormalizeUser.ps1's own DESCRIPTION for the citation and the pre-existing
+    # bug this fixes). createdDateTime added 2026-08-08 for USR-005's "never signed in" fallback
+    # -- deliberately NOT selecting signInActivity here too: that field is P1/P2-licensed and
+    # AuditLog.Read.All-gated, so it's collected by a wholly separate collector
+    # (CollectUserSignInActivity.ps1) instead of risking this entire, otherwise-unlicensed-safe
+    # Users fetch failing outright on a tenant without Entra ID P1/P2.
     $path = '/v1.0/users'
-    $queryParams = @{ '$select' = 'id,displayName,userPrincipalName,accountEnabled,userType,onPremisesSyncEnabled' }
+    $queryParams = @{ '$select' = 'id,displayName,userPrincipalName,accountEnabled,userType,onPremisesSyncEnabled,createdDateTime' }
     $rawUsers = Send-EntraPostureRequest @sendParams -Path $path -Method GET -QueryParameters $queryParams
 
     $entities = foreach ($rawUser in $rawUsers) {

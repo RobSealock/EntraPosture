@@ -69,5 +69,6 @@ function Get-EntraPostureEvidenceFileRegistry {
         [ordered]@{ RecordKind = 'Relationship'; TypeName = 'OwnerOf';                              RelativePath = 'evidence/entra-owners.jsonl';                             ContractName = 'relationship' }
         [ordered]@{ RecordKind = 'Relationship'; TypeName = 'PimActive';                            RelativePath = 'evidence/entra-pim-active-assignments.jsonl';            ContractName = 'relationship' }
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'GroupSetting';                         RelativePath = 'evidence/entra-group-settings.jsonl';                     ContractName = 'entity' }
+        [ordered]@{ RecordKind = 'Entity';       TypeName = 'UserSignInActivity';                   RelativePath = 'evidence/entra-user-sign-in-activity.jsonl';              ContractName = 'entity' }
     )
 }

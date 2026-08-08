@@ -46,7 +46,7 @@ BeforeAll {
         'src/Normalization/NormalizeOwnerOf.ps1', 'src/Normalization/NormalizeAgentIdentityBlueprint.ps1',
         'src/Normalization/NormalizeAgentIdentityBlueprintPrincipal.ps1', 'src/Normalization/NormalizeAgentIdentity.ps1',
         'src/Normalization/NormalizeAgentUser.ps1', 'src/Normalization/NormalizePimForGroups.ps1',
-        'src/Normalization/NormalizeGroupSettings.ps1',
+        'src/Normalization/NormalizeGroupSettings.ps1', 'src/Normalization/NormalizeUserSignInActivity.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -61,6 +61,7 @@ BeforeAll {
         'src/Collectors/CollectAgentIdentityBlueprints.ps1', 'src/Collectors/CollectAgentIdentityBlueprintPrincipals.ps1',
         'src/Collectors/CollectAgentIdentities.ps1', 'src/Collectors/CollectAgentUsers.ps1',
         'src/Collectors/CollectPimForGroups.ps1', 'src/Collectors/CollectGroupSettings.ps1',
+        'src/Collectors/CollectUserSignInActivity.ps1',
         'src/Evidence/EvidenceFileRegistry.ps1', 'src/Evidence/EvidenceProvider.ps1',
         'src/Controls/ControlRegistry.ps1', 'src/Controls/EvaluateCrossTenantInboundTrust.ps1',
         'src/Controls/EvaluatePrivilegedRoleAssignment.ps1', 'src/Controls/DeviationApplication.ps1',
@@ -245,11 +246,19 @@ Describe 'Global Reader-shaped identity: the two documented coverage gaps are ex
                 # PrivilegedAssignmentSchedule.Read.AzureADGroup are permission scopes this
                 # curated Global-Reader-shaped token was never granted, independent of whether
                 # Global Reader's built-in role would be a sufficient *role* pairing for
-                # role-assignable groups specifically.
+                # role-assignable groups specifically. UserSignInActivity (VNext build order item
+                # 2 batch 8, USR-005): AuditLog.Read.All is likewise a permission scope this
+                # curated token was never granted -- unlike groupSettings' own reference page
+                # (which explicitly lists Global Reader among the built-in roles that can read it,
+                # already reflected by including GroupSettings.Read.All above), the "List users"
+                # reference page's signInActivity note does not enumerate supported delegated
+                # roles at all, so this project makes no unverified claim about Global Reader
+                # either way and keeps this scope out of the granted set.
                 $armCollectorNames = @('AzureRoleAssignments', 'AzureSubscriptions', 'AzureManagementGroups', 'AzureRoleDefinitions')
                 $deniedByDesign = @(
                     'AccessReviewDefinitions', 'AuthenticationStrengthPolicies',
-                    'AgentIdentityBlueprints', 'AgentIdentityBlueprintPrincipals', 'AgentIdentities', 'AgentUsers', 'PimForGroups'
+                    'AgentIdentityBlueprints', 'AgentIdentityBlueprintPrincipals', 'AgentIdentities', 'AgentUsers', 'PimForGroups',
+                    'UserSignInActivity'
                 )
                 $otherGraphCollectors = $result.Coverage.collectors | Where-Object { $_.collectorName -notin ($deniedByDesign + $armCollectorNames) }
                 $notCollected = @($otherGraphCollectors | Where-Object { $_.evidenceStatus -ne 'Collected' })

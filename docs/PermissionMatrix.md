@@ -36,6 +36,7 @@ operation exists anywhere in this codebase).
 | `PrivilegedEligibilitySchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001 |
 | `PrivilegedAssignmentSchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001, PIMG-002 |
 | `GroupSettings.Read.All` | GroupSettings | External Collaboration | COL-003 |
+| `AuditLog.Read.All` | UserSignInActivity | Identity | USR-005 (also requires the tenant to be licensed for Entra ID P1 or P2 -- see below) |
 
 **Live What-If comparison** (the ad hoc `scripts/Compare-WhatIf.ps1` utility, not part of the
 core assessment pipeline) additionally calls `POST /identity/conditionalAccess/evaluate`, whose
@@ -70,6 +71,11 @@ is). **`AgentUsers`'s ownedObjects half (AGT-015) has no application-permission 
 confirmed directly against the live "List ownedObjects" Graph reference page, which lists
 Application permission as "Not supported" for that specific relationship -- so AGT-015 evidence is
 structurally unavailable for any `CertificateAppOnly` run regardless of role or granted scopes.
+**`UserSignInActivity` (USR-005) has a real, separate dependency beyond permission entirely**: even
+with `AuditLog.Read.All` granted, the `signInActivity` property requires the tenant itself to be
+licensed for Microsoft Entra ID P1 or P2 -- an unlicensed tenant will see this collector fail at
+collection time (a real API error despite adequate permission, per this project's own
+partial-evidence handling), surfacing as `USR-005-EVIDENCE-NOT-COLLECTED`, never a silent Pass.
 
 ## Azure Resource Manager permissions (optional -- only needed if you pass `-ArmScope`)
 

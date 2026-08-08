@@ -132,6 +132,9 @@ function Invoke-EntraPostureGraphCollectorDispatch {
         'GroupSettings' {
             Invoke-EntraPostureGroupSettingsCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
         }
+        'UserSignInActivity' {
+            Invoke-EntraPostureUserSignInActivityCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
         default { $null }
     }
     return $result

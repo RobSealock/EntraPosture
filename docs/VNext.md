@@ -72,9 +72,17 @@ deliberately instead of incidentally.
    `AllowGuestsToBeGroupOwner` template default). A tenant with no customized `Group.Unified`
    settings evaluates as Pass on that documented default, not `NotApplicable` -- absence of the
    settings object is a real, meaningful outcome, not missing evidence. 64 controls now ship.
-   `USR-005` (task #117) remains the next new-evidence item; `USR-010`/`011` remain deferred (too
-   large in scope, no crisp "weak" definition yet). ~119 rows remain (of the original ~150
-   estimate).
+   **Batch 8, same day**: `USR-005` ("Inactive Users") built -- a second new collector
+   (`CollectUserSignInActivity.ps1`, `GET /v1.0/users?$select=id,signInActivity`, a new
+   `AuditLog.Read.All` permission, and a new `UserSignInActivity` entity type) deliberately kept
+   separate from `CollectUsers.ps1` rather than folded into its own `$select`, so a tenant without
+   Entra ID P1/P2 licensing (a real, distinct dependency `signInActivity` has beyond permission
+   alone) only loses USR-005's own coverage, not the base `User` evidence USR-007/008 and every
+   other User-reading control already depend on. 180-day inactivity threshold and the
+   last-successful-sign-in/account-creation-date two-signal shape independently re-derived from
+   EntraFalcon's own publicly visible source, then confirmed against live Microsoft Graph
+   documentation. 65 controls now ship. `USR-010`/`011` remain deferred (too large in scope, no
+   crisp "weak" definition yet). ~118 rows remain (of the original ~150 estimate).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access
