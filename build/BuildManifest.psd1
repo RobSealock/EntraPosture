@@ -251,6 +251,7 @@
         'src/Controls/EvaluatePublicM365Groups.ps1'
         'src/Controls/EvaluateDangerousDynamicGroupRule.ps1'
         'src/Controls/EvaluatePimEntraRoleAdoption.ps1'
+        'src/Controls/EvaluateEntraLeastPrivilege.ps1'
         'src/Reporting/BuildAssessmentDocument.ps1'
         'src/Reporting/RedactionApplication.ps1'
         'src/Reporting/RenderHtmlReport.ps1'

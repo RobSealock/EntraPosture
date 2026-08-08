@@ -28,7 +28,7 @@ function Get-EntraPostureDirectoryRoleCollectorRequirement {
         -AffectedControlIds @(
             'PRIV-001', 'PIM-002', 'CA-001', 'CA-002', 'PIM-003', 'PIM-004', 'PIM-005', 'PIM-006', 'PIM-007', 'PIM-008', 'PIM-009', 'CAP-010',
             'AGT-004', 'AGT-008', 'AGT-011', 'AGT-013', 'MAI-002',
-            'ENT-006', 'ENT-011', 'USR-007'
+            'ENT-006', 'ENT-011', 'USR-007', 'USR-006'
         ) `
         -AffectedReportSections @('Privileged Roles')
 }

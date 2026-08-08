@@ -20,7 +20,8 @@ BeforeAll {
         'src/Controls/EvaluateM365GroupCreationRestriction.ps1',
         'src/Controls/EvaluatePublicM365Groups.ps1',
         'src/Controls/EvaluateDangerousDynamicGroupRule.ps1',
-        'src/Controls/EvaluatePimEntraRoleAdoption.ps1'
+        'src/Controls/EvaluatePimEntraRoleAdoption.ps1',
+        'src/Controls/EvaluateEntraLeastPrivilege.ps1'
     )) {
         . (Join-Path $script:RepoRoot $relPath)
     }
@@ -232,5 +233,52 @@ Describe 'PIM-001: Test-EntraPosturePimEntraRoleAdoptionControl' {
         $dirSome = New-TestSnapshotDir
         Write-TestEvidenceFile -Dir $dirSome -RelativePath 'evidence/entra-pim-eligibility.jsonl' -Records @((New-TestPimEligibleRelationship -PrincipalId 'user-1' -RoleId 'ga-role'))
         (Test-EntraPosturePimEntraRoleAdoptionControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dirSome))[0].Status | Should -Be 'Pass'
+    }
+}
+
+Describe 'USR-006: Test-EntraPostureEntraLeastPrivilegeControl' {
+    It 'counts direct and group-transitive Tier-0 role holders, deduplicated, against the 5-user threshold' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-roles.jsonl' -Records @(
+            [ordered]@{ entityId = 'ga-role'; entityType = 'DirectoryRole'; tenantScope = 't1'; displayName = 'Global Administrator'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; properties = [ordered]@{}; redacted = $false }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-users.jsonl' -Records @(
+            [ordered]@{ entityId = 'u1'; entityType = 'User'; tenantScope = 't1'; displayName = 'u1'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u2'; entityType = 'User'; tenantScope = 't1'; displayName = 'u2'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u3'; entityType = 'User'; tenantScope = 't1'; displayName = 'u3'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u4'; entityType = 'User'; tenantScope = 't1'; displayName = 'u4'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u5'; entityType = 'User'; tenantScope = 't1'; displayName = 'u5'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u-disabled'; entityType = 'User'; tenantScope = 't1'; displayName = 'u-disabled'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $false } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-role-assignments.jsonl' -Records @(
+            [ordered]@{ relationshipId = 'u1::ga-role::DirectoryRoleAssignment'; sourceEntityId = 'u1'; targetEntityId = 'ga-role'; relationshipType = 'DirectoryRoleAssignment'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false } },
+            [ordered]@{ relationshipId = 'u2::ga-role::DirectoryRoleAssignment'; sourceEntityId = 'u2'; targetEntityId = 'ga-role'; relationshipType = 'DirectoryRoleAssignment'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false } },
+            [ordered]@{ relationshipId = 'grp1::ga-role::DirectoryRoleAssignment'; sourceEntityId = 'grp1'; targetEntityId = 'ga-role'; relationshipType = 'DirectoryRoleAssignment'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false } },
+            [ordered]@{ relationshipId = 'u-disabled::ga-role::DirectoryRoleAssignment'; sourceEntityId = 'u-disabled'; targetEntityId = 'ga-role'; relationshipType = 'DirectoryRoleAssignment'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-group-memberships.jsonl' -Records @(
+            [ordered]@{ relationshipId = 'u3::grp1::TransitiveMemberOf'; sourceEntityId = 'u3'; targetEntityId = 'grp1'; relationshipType = 'TransitiveMemberOf'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $true } },
+            [ordered]@{ relationshipId = 'u4::grp1::TransitiveMemberOf'; sourceEntityId = 'u4'; targetEntityId = 'grp1'; relationshipType = 'TransitiveMemberOf'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $true } },
+            [ordered]@{ relationshipId = 'u5::grp1::TransitiveMemberOf'; sourceEntityId = 'u5'; targetEntityId = 'grp1'; relationshipType = 'TransitiveMemberOf'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $true } }
+        )
+        $result = Test-EntraPostureEntraLeastPrivilegeControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $result[0].Status | Should -Be 'Fail'
+        $result[0].ReasonCode | Should -Be 'USR-006-EXCESSIVE-TIER-ZERO-USERS'
+        $result[0].Rationale | Should -Match '5 enabled users'
+    }
+
+    It 'passes when below the threshold' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-roles.jsonl' -Records @(
+            [ordered]@{ entityId = 'ga-role'; entityType = 'DirectoryRole'; tenantScope = 't1'; displayName = 'Global Administrator'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; properties = [ordered]@{}; redacted = $false }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-users.jsonl' -Records @(
+            [ordered]@{ entityId = 'u1'; entityType = 'User'; tenantScope = 't1'; displayName = 'u1'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-role-assignments.jsonl' -Records @(
+            [ordered]@{ relationshipId = 'u1::ga-role::DirectoryRoleAssignment'; sourceEntityId = 'u1'; targetEntityId = 'ga-role'; relationshipType = 'DirectoryRoleAssignment'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false } }
+        )
+        $result = Test-EntraPostureEntraLeastPrivilegeControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $result[0].Status | Should -Be 'Pass'
     }
 }
