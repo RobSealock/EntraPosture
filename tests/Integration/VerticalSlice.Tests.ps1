@@ -62,12 +62,24 @@ BeforeAll {
         'src/Evidence/EvidenceFileRegistry.ps1', 'src/Evidence/EvidenceProvider.ps1',
         'src/Controls/ControlRegistry.ps1', 'src/Controls/EvaluateCrossTenantInboundTrust.ps1',
         'src/Controls/EvaluatePrivilegedRoleAssignment.ps1', 'src/Controls/DeviationApplication.ps1',
+        # NOT a fix for VNext.md build order item 2's own documented dot-source gap ("silently
+        # [Error]s on most controls") -- that gap is pre-existing, harmless to this Describe's own
+        # exit-code assertions specifically (Get-EntraPostureRunExitCode never counts Error status
+        # at all, only Fail/NotEvaluated), and out of scope here. Only CAP-*'s own evaluator files
+        # are added below, the minimum needed so CAP-*'s coverage (now wired via
+        # CollectConditionalAccessPolicies.ps1's AffectedControlIds) evaluates instead of Erroring
+        # -- deliberately not touching the wider gap in the same pass.
         'src/Controls/AgentIdentityForeignDerivation.ps1', 'src/Controls/EvaluateAgentBlueprintClientSecrets.ps1',
         'src/Controls/EvaluateForeignAgentIdentityEntraRole.ps1', 'src/Controls/EvaluateForeignAgentIdentityAzureRole.ps1',
         'src/Controls/EvaluateInternalAgentIdentityEntraRole.ps1', 'src/Controls/EvaluateInternalAgentIdentityAzureRole.ps1',
         'src/Controls/EvaluateForeignAgentUserEntraRole.ps1', 'src/Controls/EvaluateForeignAgentUserAzureRole.ps1',
         'src/Controls/EvaluateAgentUserCapGroupOwnership.ps1', 'src/Controls/EvaluateAgentBlueprintOwnerTier.ps1',
         'src/Controls/EvaluatePimForGroupsStandingMembership.ps1', 'src/Controls/EvaluatePimForGroupsPermanentAssignment.ps1',
+        'src/Controls/EvaluateDeviceCodeFlowRestriction.ps1', 'src/Controls/EvaluateSecurityInfoRegistrationRestriction.ps1',
+        'src/Controls/EvaluateLegacyAuthenticationBlock.ps1', 'src/Controls/EvaluateDeviceRegistrationMfa.ps1',
+        'src/Controls/EvaluatePhishingResistantMfaEnforcement.ps1', 'src/Controls/EvaluateCombinedRiskPolicy.ps1',
+        'src/Controls/EvaluateSignInRiskManagement.ps1', 'src/Controls/EvaluateUserRiskManagement.ps1',
+        'src/Controls/EvaluateBroadMfaEnforcement.ps1', 'src/Controls/EvaluateTierZeroRoleCaCoverage.ps1',
         'src/Reporting/BuildAssessmentDocument.ps1', 'src/Reporting/RedactionApplication.ps1',
         'src/ConditionalAccess/ScenarioModel.ps1', 'src/ConditionalAccess/GenerateCombinatorialScenarios.ps1',
         'src/Reporting/RenderHtmlReport.ps1', 'src/Reporting/RenderCsvReport.ps1', 'src/Reporting/RenderConsoleReport.ps1', 'src/Reporting/CompareAssessment.ps1',
@@ -241,7 +253,30 @@ BeforeAll {
         return @{
             '/v1.0/directoryRoles' = "{`"value`":[{`"id`":`"inst-ga`",`"displayName`":`"Global Administrator`",`"description`":`"desc`",`"roleTemplateId`":`"$script:GaRoleId`"}]}"
             '/v1.0/directoryRoles/inst-ga/members' = $membersJson
-            '/v1.0/identity/conditionalAccess/policies' = '{"value":[{"id":"ca1","displayName":"Require MFA","state":"enabled","createdDateTime":"2026-01-01T00:00:00Z","modifiedDateTime":"2026-01-02T00:00:00Z"}]}'
+            # A single generic "Require MFA" policy through 2026-08-07; extended 2026-08-08 (VNext
+            # build order item 2's CAP-* slice) with enough real policy shapes that this "clean,
+            # well-configured tenant" fixture actually satisfies every registered Conditional
+            # Access control, not just the pre-existing ones -- exit-code "success" scenarios
+            # depend on this being genuinely clean, not narrowly clean for the controls that
+            # existed when the fixture was first written.
+            '/v1.0/identity/conditionalAccess/policies' = "{`"value`":[
+                {`"id`":`"ca1`",`"displayName`":`"Require MFA for all users`",`"state`":`"enabled`",`"createdDateTime`":`"2026-01-01T00:00:00Z`",`"modifiedDateTime`":`"2026-01-02T00:00:00Z`",
+                 `"conditions`":{`"users`":{`"includeUsers`":[`"All`"]}},`"grantControls`":{`"operator`":`"OR`",`"builtInControls`":[`"mfa`"]}},
+                {`"id`":`"ca-devicecode`",`"displayName`":`"Block device code flow`",`"state`":`"enabled`",`"createdDateTime`":`"2026-01-01T00:00:00Z`",`"modifiedDateTime`":`"2026-01-02T00:00:00Z`",
+                 `"conditions`":{`"authenticationFlows`":{`"transferMethods`":`"deviceCodeFlow`"}},`"grantControls`":{`"operator`":`"OR`",`"builtInControls`":[`"block`"]}},
+                {`"id`":`"ca-secinfo`",`"displayName`":`"Govern security info registration`",`"state`":`"enabled`",`"createdDateTime`":`"2026-01-01T00:00:00Z`",`"modifiedDateTime`":`"2026-01-02T00:00:00Z`",
+                 `"conditions`":{`"applications`":{`"includeUserActions`":[`"urn:user:registersecurityinfo`"]}},`"grantControls`":{`"operator`":`"OR`",`"builtInControls`":[`"mfa`"]}},
+                {`"id`":`"ca-legacy`",`"displayName`":`"Block legacy authentication`",`"state`":`"enabled`",`"createdDateTime`":`"2026-01-01T00:00:00Z`",`"modifiedDateTime`":`"2026-01-02T00:00:00Z`",
+                 `"conditions`":{`"clientAppTypes`":[`"exchangeActiveSync`",`"other`"]},`"grantControls`":{`"operator`":`"OR`",`"builtInControls`":[`"block`"]}},
+                {`"id`":`"ca-devicereg`",`"displayName`":`"Require MFA for device registration`",`"state`":`"enabled`",`"createdDateTime`":`"2026-01-01T00:00:00Z`",`"modifiedDateTime`":`"2026-01-02T00:00:00Z`",
+                 `"conditions`":{`"applications`":{`"includeUserActions`":[`"urn:user:registerdevice`"]}},`"grantControls`":{`"operator`":`"OR`",`"builtInControls`":[`"mfa`"]}},
+                {`"id`":`"ca-phishres`",`"displayName`":`"Require phishing-resistant MFA`",`"state`":`"enabled`",`"createdDateTime`":`"2026-01-01T00:00:00Z`",`"modifiedDateTime`":`"2026-01-02T00:00:00Z`",
+                 `"conditions`":{},`"grantControls`":{`"operator`":`"OR`",`"authenticationStrength`":{`"id`":`"strength-phishres`"}}},
+                {`"id`":`"ca-risk`",`"displayName`":`"Require MFA for sign-in and user risk`",`"state`":`"enabled`",`"createdDateTime`":`"2026-01-01T00:00:00Z`",`"modifiedDateTime`":`"2026-01-02T00:00:00Z`",
+                 `"conditions`":{`"signInRiskLevels`":[`"high`"],`"userRiskLevels`":[`"high`"]},`"grantControls`":{`"operator`":`"OR`",`"builtInControls`":[`"mfa`"]}},
+                {`"id`":`"ca-tierzero`",`"displayName`":`"Require MFA for Tier-0 roles`",`"state`":`"enabled`",`"createdDateTime`":`"2026-01-01T00:00:00Z`",`"modifiedDateTime`":`"2026-01-02T00:00:00Z`",
+                 `"conditions`":{`"users`":{`"includeRoles`":[`"$script:GaRoleId`"]}},`"grantControls`":{`"operator`":`"OR`",`"builtInControls`":[`"mfa`"]}}
+            ]}"
             '/v1.0/policies/crossTenantAccessPolicy' = "{`"id`":`"default`",`"inboundTrust`":{`"isMfaAccepted`":$mfaAccepted,`"isCompliantDeviceAccepted`":$compliantAccepted,`"isHybridAzureADJoinedDeviceAccepted`":false}}"
             '/subscriptions/sub-1/providers/Microsoft.Authorization/roleAssignments' = '{"value":[{"id":"/subscriptions/sub-1/providers/Microsoft.Authorization/roleAssignments/abc","name":"abc","properties":{"roleDefinitionId":"rd1","principalId":"p1","principalType":"User","scope":"/subscriptions/sub-1","createdOn":"2026-01-01T00:00:00Z"}}]}'
             '/v1.0/users' = '{"value":[]}'
@@ -256,7 +291,7 @@ BeforeAll {
             '/v1.0/identityGovernance/accessReviews/definitions' = '{"value":[]}'
             '/v1.0/identity/conditionalAccess/authenticationContextClassReferences' = '{"value":[]}'
             '/v1.0/identity/conditionalAccess/namedLocations' = '{"value":[]}'
-            '/v1.0/policies/authenticationStrengthPolicies' = '{"value":[]}'
+            '/v1.0/policies/authenticationStrengthPolicies' = '{"value":[{"id":"strength-phishres","displayName":"Phishing-resistant MFA","policyType":"builtIn","requirementsSatisfied":"mfa","allowedCombinations":["windowsHelloForBusiness","fido2","x509CertificateMultiFactor"]}]}'
             '/v1.0/policies/roleManagementPolicyAssignments' = '{"value":[]}'
             '/v1.0/organization' = '{"value":[{"id":"org1","displayName":"Contoso","createdDateTime":"2020-01-01T00:00:00Z"}]}'
             '/v1.0/policies/identitySecurityDefaultsEnforcementPolicy' = '{"isEnabled":false}'

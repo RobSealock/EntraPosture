@@ -29,7 +29,7 @@ function Get-EntraPostureAuthenticationStrengthPolicyCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'AuthenticationStrengthPolicies' `
         -RequiredPermissions @('Policy.Read.AuthenticationMethod') `
         -EndpointsUsed @('/v1.0/policies/authenticationStrengthPolicies') `
-        -AffectedControlIds @('CA-002') `
+        -AffectedControlIds @('CA-002', 'CAP-005') `
         -AffectedReportSections @('Conditional Access')
 }
 

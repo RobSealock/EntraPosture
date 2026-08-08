@@ -20,7 +20,10 @@ function Get-EntraPostureConditionalAccessPolicyCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'ConditionalAccessPolicies' `
         -RequiredPermissions @('Policy.Read.All') `
         -EndpointsUsed @('/v1.0/identity/conditionalAccess/policies') `
-        -AffectedControlIds @('CA-001', 'CA-002') `
+        -AffectedControlIds @(
+            'CA-001', 'CA-002',
+            'CAP-001', 'CAP-002', 'CAP-003', 'CAP-004', 'CAP-005', 'CAP-006', 'CAP-007', 'CAP-008', 'CAP-009', 'CAP-010'
+        ) `
         -AffectedReportSections @('Conditional Access')
 }
 
