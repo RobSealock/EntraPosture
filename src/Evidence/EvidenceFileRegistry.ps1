@@ -71,5 +71,6 @@ function Get-EntraPostureEvidenceFileRegistry {
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'GroupSetting';                         RelativePath = 'evidence/entra-group-settings.jsonl';                     ContractName = 'entity' }
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'UserSignInActivity';                   RelativePath = 'evidence/entra-user-sign-in-activity.jsonl';              ContractName = 'entity' }
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'ServicePrincipalApiPermissions';       RelativePath = 'evidence/entra-service-principal-api-permissions.jsonl';  ContractName = 'entity' }
+        [ordered]@{ RecordKind = 'Entity';       TypeName = 'UserRegistrationDetails';              RelativePath = 'evidence/entra-user-registration-details.jsonl';          ContractName = 'entity' }
     )
 }

@@ -138,6 +138,9 @@ function Invoke-EntraPostureGraphCollectorDispatch {
         'ServicePrincipalApiPermissions' {
             Invoke-EntraPostureServicePrincipalApiPermissionsCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
         }
+        'UserRegistrationDetails' {
+            Invoke-EntraPostureUserRegistrationDetailsCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
         default { $null }
     }
     return $result

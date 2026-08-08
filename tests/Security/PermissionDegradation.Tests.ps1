@@ -48,6 +48,7 @@ BeforeAll {
         'src/Normalization/NormalizeAgentUser.ps1', 'src/Normalization/NormalizePimForGroups.ps1',
         'src/Normalization/NormalizeGroupSettings.ps1', 'src/Normalization/NormalizeUserSignInActivity.ps1',
         'src/Normalization/NormalizeServicePrincipalApiPermissions.ps1',
+        'src/Normalization/NormalizeUserRegistrationDetails.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -63,6 +64,7 @@ BeforeAll {
         'src/Collectors/CollectAgentIdentities.ps1', 'src/Collectors/CollectAgentUsers.ps1',
         'src/Collectors/CollectPimForGroups.ps1', 'src/Collectors/CollectGroupSettings.ps1',
         'src/Collectors/CollectUserSignInActivity.ps1', 'src/Collectors/CollectServicePrincipalApiPermissions.ps1',
+        'src/Collectors/CollectUserRegistrationDetails.ps1',
         'src/Evidence/EvidenceFileRegistry.ps1', 'src/Evidence/EvidenceProvider.ps1',
         'src/Controls/ControlRegistry.ps1', 'src/Controls/EvaluateCrossTenantInboundTrust.ps1',
         'src/Controls/EvaluatePrivilegedRoleAssignment.ps1', 'src/Controls/DeviationApplication.ps1',
@@ -261,12 +263,16 @@ Describe 'Global Reader-shaped identity: the two documented coverage gaps are ex
                 # granted (it was only added to the "full" permission set for AgentUsers' own
                 # unrelated ownedObjects fetch), independent of Global Reader's own built-in role
                 # being an explicitly documented supported role for oauth2PermissionGrants if the
-                # scope had been granted.
+                # scope had been granted. UserRegistrationDetails (USR-012, the 109-row backlog
+                # continuation): also needs AuditLog.Read.All -- the same scope UserSignInActivity
+                # already lacks in this curated token, so it lands in the same gap for the same
+                # reason, even though the "List userRegistrationDetails" reference page itself
+                # does name Global Reader as a supported role once the scope is granted.
                 $armCollectorNames = @('AzureRoleAssignments', 'AzureSubscriptions', 'AzureManagementGroups', 'AzureRoleDefinitions')
                 $deniedByDesign = @(
                     'AccessReviewDefinitions', 'AuthenticationStrengthPolicies',
                     'AgentIdentityBlueprints', 'AgentIdentityBlueprintPrincipals', 'AgentIdentities', 'AgentUsers', 'PimForGroups',
-                    'UserSignInActivity', 'ServicePrincipalApiPermissions'
+                    'UserSignInActivity', 'ServicePrincipalApiPermissions', 'UserRegistrationDetails'
                 )
                 $otherGraphCollectors = $result.Coverage.collectors | Where-Object { $_.collectorName -notin ($deniedByDesign + $armCollectorNames) }
                 $notCollected = @($otherGraphCollectors | Where-Object { $_.evidenceStatus -ne 'Collected' })

@@ -26,7 +26,8 @@
         "SecurityDefaultsPolicy", "NamedLocation", "AuthenticationStrengthPolicy",
         "RoleManagementPolicyAssignment",
         "AgentIdentityBlueprint", "AgentIdentityBlueprintPrincipal", "AgentIdentity", "AgentUser",
-        "GroupSetting", "UserSignInActivity", "ServicePrincipalApiPermissions"
+        "GroupSetting", "UserSignInActivity", "ServicePrincipalApiPermissions",
+        "UserRegistrationDetails"
       ]
     },
     "tenantScope": {
