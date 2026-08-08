@@ -8,11 +8,19 @@ function ConvertTo-EntraPostureApplicationEntity {
 
         .DESCRIPTION
         Field allowlist per section 8.4: id, appId, displayName, signInAudience,
-        createdDateTime. signInAudience is load-bearing for multi-tenant/personal-account
-        exposure findings (a v.next candidate, not evaluated in v1, but worth collecting now
-        per this phase's own "schema-first collectors for the accepted v1 domains" instruction
-        -- Applications is itself a section 4.1 v1-included domain regardless of which specific
-        controls read it yet).
+        createdDateTime, passwordCredentialCount. signInAudience is load-bearing for
+        multi-tenant/personal-account exposure findings (a v.next candidate, not evaluated in
+        v1, but worth collecting now per this phase's own "schema-first collectors for the
+        accepted v1 domains" instruction -- Applications is itself a section 4.1 v1-included
+        domain regardless of which specific controls read it yet).
+
+        passwordCredentialCount (added 2026-08-08, VNext build order item 2 batch 3, APP-001):
+        the raw passwordCredentials array (present by default on this same
+        GET /v1.0/applications response this collector already makes -- confirmed by its
+        presence on the agentIdentityBlueprint-list example response, the same underlying
+        /applications resource family) is aggregated to a bare count at normalization time and
+        never persisted, the same aggregate-not-raw redaction-by-construction choice
+        ConvertTo-EntraPostureAgentIdentityBlueprintEntity already made for the identical field.
 
         .PARAMETER RawApplication
         .PARAMETER TenantScope
@@ -58,6 +66,7 @@ function ConvertTo-EntraPostureApplicationEntity {
             appId            = if ($RawApplication.Contains('appId')) { $RawApplication['appId'] } else { $null }
             signInAudience   = if ($RawApplication.Contains('signInAudience')) { $RawApplication['signInAudience'] } else { $null }
             createdDateTime  = if ($RawApplication.Contains('createdDateTime')) { $RawApplication['createdDateTime'] } else { $null }
+            passwordCredentialCount = @(if ($RawApplication.Contains('passwordCredentials')) { $RawApplication['passwordCredentials'] } else { @() }).Count
         }
         redacted         = $false
     }

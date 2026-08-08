@@ -7,7 +7,7 @@ function ConvertTo-EntraPostureAuthorizationPolicyEntity {
         authorizationPolicy) into a canonical Entity record.
 
         .DESCRIPTION
-        Field allowlist per section 8.4: id, allowInvitesFrom, and the
+        Field allowlist per section 8.4: id, allowInvitesFrom, guestUserRoleId, and the
         defaultUserRolePermissions sub-object's allowedToCreateApps/
         allowedToCreateSecurityGroups/allowedToReadOtherUsers/permissionGrantPoliciesAssigned --
         the fields this project's future AC-001 control ("Default User Consent Policy More
@@ -15,6 +15,16 @@ function ConvertTo-EntraPostureAuthorizationPolicyEntity {
         is expected to need. Exact field-name confirmation against a live tenant response is
         still pending (00-open-questions.md's Phase 6 section) -- these are the well-documented
         Microsoft Graph field names, not independently re-verified this pass.
+
+        guestUserRoleId (added 2026-08-08, VNext build order item 2 batch 3, COL-001): a GUID
+        naming one of three Microsoft-documented well-known role template IDs -- User
+        (a0b1b346-4d3e-4e8b-98f8-753987be4970, least restrictive), Guest User
+        (10dae51f-b6af-4016-8d66-8c2a99b929b3, the tenant default), or Restricted Guest User
+        (2af84b1e-32c8-42b7-82bc-daa82404023b, most restrictive) -- confirmed directly against
+        the live authorizationPolicy Graph reference page, re-fetched 2026-08-08. Already part of
+        this singleton's own default GET response (unlike GET /v1.0/users' documented smaller
+        default set -- see NormalizeUser.ps1's own DESCRIPTION for that distinct case), no
+        collector $select change needed.
 
         .PARAMETER RawPolicy
         The raw response object (singleton, no 'value' array wrapper).
@@ -63,6 +73,7 @@ function ConvertTo-EntraPostureAuthorizationPolicyEntity {
             allowedToCreateSecurityGroups         = if ($defaultUserRolePermissions -and $defaultUserRolePermissions.Contains('allowedToCreateSecurityGroups')) { $defaultUserRolePermissions['allowedToCreateSecurityGroups'] } else { $null }
             allowedToReadOtherUsers              = if ($defaultUserRolePermissions -and $defaultUserRolePermissions.Contains('allowedToReadOtherUsers')) { $defaultUserRolePermissions['allowedToReadOtherUsers'] } else { $null }
             permissionGrantPoliciesAssigned      = @(if ($defaultUserRolePermissions -and $defaultUserRolePermissions.Contains('permissionGrantPoliciesAssigned')) { $defaultUserRolePermissions['permissionGrantPoliciesAssigned'] } else { @() })
+            guestUserRoleId                      = if ($RawPolicy.Contains('guestUserRoleId')) { $RawPolicy['guestUserRoleId'] } else { $null }
         }
         redacted         = $false
     }

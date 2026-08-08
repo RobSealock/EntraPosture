@@ -73,8 +73,12 @@ function Invoke-EntraPostureUserCollector {
     if ($AllowlistOverride) { $sendParams['AllowlistOverride'] = $AllowlistOverride }
     if ($SchemeOverride -ne 'https') { $sendParams['SchemeOverride'] = $SchemeOverride }
 
+    # $select required -- accountEnabled/userType/onPremisesSyncEnabled are not in Microsoft's
+    # documented default property set for this endpoint (confirmed live 2026-08-08; see
+    # NormalizeUser.ps1's own DESCRIPTION for the citation and the pre-existing bug this fixes).
     $path = '/v1.0/users'
-    $rawUsers = Send-EntraPostureRequest @sendParams -Path $path -Method GET
+    $queryParams = @{ '$select' = 'id,displayName,userPrincipalName,accountEnabled,userType,onPremisesSyncEnabled' }
+    $rawUsers = Send-EntraPostureRequest @sendParams -Path $path -Method GET -QueryParameters $queryParams
 
     $entities = foreach ($rawUser in $rawUsers) {
         ConvertTo-EntraPostureUserEntity -RawUser $rawUser -TenantScope $TenantScope `

@@ -17,7 +17,16 @@ function ConvertTo-EntraPostureServicePrincipalEntity {
         data.
 
         Field allowlist per section 8.4: id, appId, displayName, servicePrincipalType,
-        accountEnabled.
+        accountEnabled, appOwnerOrganizationId.
+
+        appOwnerOrganizationId (added 2026-08-08, VNext build order item 2 batch 3 -- unlocks
+        ENT-006/007/011/012's foreign/internal split with zero new collector call, the same
+        already-in-the-default-response field this project already reads on
+        AgentIdentityBlueprintPrincipal, confirmed present on the plain, unfiltered
+        GET /v1.0/servicePrincipals response this collector already makes) -- the tenant that
+        owns the underlying application, differing from the collecting tenant's own ID when the
+        service principal represents an application registered (and consented) in a different
+        tenant.
 
         .PARAMETER RawServicePrincipal
         .PARAMETER TenantScope
@@ -67,6 +76,7 @@ function ConvertTo-EntraPostureServicePrincipalEntity {
             appId                 = if ($RawServicePrincipal.Contains('appId')) { $RawServicePrincipal['appId'] } else { $null }
             servicePrincipalType  = $spType
             accountEnabled        = if ($RawServicePrincipal.Contains('accountEnabled')) { $RawServicePrincipal['accountEnabled'] } else { $null }
+            appOwnerOrganizationId = if ($RawServicePrincipal.Contains('appOwnerOrganizationId')) { $RawServicePrincipal['appOwnerOrganizationId'] } else { $null }
         }
         redacted         = $false
     }
