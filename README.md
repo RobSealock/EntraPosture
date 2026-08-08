@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/EntraPosture.png" alt="EntraPosture logo" width="160">
+  <img src="docs/images/EntraPosture.png" alt="EntraPosture logo" width="260">
 </p>
 
 # EntraPosture
