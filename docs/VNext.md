@@ -55,7 +55,18 @@ deliberately instead of incidentally.
    duplicates, in §35. See `00-open-questions.md` §20 for the original evaluation-pipeline bug
    this slice first surfaced (`AffectedControlIds` is load-bearing for per-control
    evidence-completeness, not just descriptive) -- §35 found three more instances of the same bug
-   class. ~123 rows remain (of the original ~150 estimate).
+   class. **Batch 6, the new-evidence phase, started 2026-08-08** (`00-open-questions.md` §37):
+   `CollectApplications.ps1` and `CollectServicePrincipals.ps1` extended with owners/ownedObjects
+   N+1 fetches (the same bounded-parallel pattern `AGT-017`/`PIMG-*` already established),
+   unlocking `ENT-003`/`APP-003` (non-Tier-0 owner, ServicePrincipal and Application respectively)
+   and `ENT-008` (foreign service principal owning objects, consolidating `EF-EAP-008`/`009`/`011`
+   into one canonical finding). 63 controls now ship. A real bug was found and fixed in the
+   process: wrapping `Get-EntraPostureRelationship`'s already comma-protected return value in a
+   second `@(...)` at the call site nests the result instead of flattening it, silently inflating
+   an empty result to a phantom 1-element array -- see §37 for the full repro. `COL-003` and
+   `USR-005` (tasks #116/#117) remain the next new-evidence items; `USR-010`/`011` remain deferred
+   (too large in scope, no crisp "weak" definition yet). ~120 rows remain (of the original ~150
+   estimate).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

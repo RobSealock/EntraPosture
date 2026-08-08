@@ -186,7 +186,7 @@ it is.
 - `AGT-015`'s evidence collection is delegated-only -- Microsoft's own `ownedObjects` endpoint has
   no application-permission path at all -- so it's structurally `NotEvaluated` under
   `-AuthMode Certificate`, independent of granted permissions.
-- ~123 rows of the broader EntraFalcon/Conditional Access Validator feature-parity matrix remain
+- ~120 rows of the broader EntraFalcon/Conditional Access Validator feature-parity matrix remain
   uncatalogued as native controls -- a mix of controls needing genuinely new evidence collection
   (e.g. `COL-003` needs a `groupSettings` collector; `USR-005` needs `AuditLog.Read.All` plus P1/P2
   licensing; `USR-010`/`011` need authentication-methods data) and lower-confidence candidates
@@ -195,7 +195,7 @@ it is.
   Conditional Access (Entra ID P1+) -- confirmed to fail cleanly, not silently, against an
   unlicensed tenant.
 
-60 native controls are built and shipped, including `AR-002` (access review instance health),
+63 native controls are built and shipped, including `AR-002` (access review instance health),
 `AUTHCTX-001`/`002` (authentication context coverage and effectiveness), `CA-002` (full
 combinatorial Conditional Access gap analysis, generalizing beyond `CA-001`'s bounded 16-scenario
 grid), `EM-001`/`EM-002` (entitlement management), the full `PIM-002` through `PIM-009` set, 11
@@ -203,7 +203,8 @@ agent-identity findings (`AGT-001`, `004`, `005`, `008`, `009`, `011`-`015`, `01
 (`PIMG-001`/`002`), 10 Conditional Access policy-shape checks (`CAP-001`-`010`), 2 guest/external
 collaboration checks (`COL-001`/`002`), foreign/internal enterprise application and managed
 identity role-holding and credential checks (`ENT-001`, `ENT-006`/`007`/`011`/`012`,
-`MAI-002`/`003`), and app-registration/hybrid-identity checks (`APP-001`/`002`, `USR-007`/`008`).
+`MAI-002`/`003`), app-registration/hybrid-identity checks (`APP-001`/`002`, `USR-007`/`008`), and
+enterprise application/app-registration ownership checks (`ENT-003`/`008`, `APP-003`).
 Conditional Access drift detection (`Compare-EntraPosture`), named-location resolution,
 device-filter rule-language evaluation, and
 workload-identity sign-in scenarios are also built.
