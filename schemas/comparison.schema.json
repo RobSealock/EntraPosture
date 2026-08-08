@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/comparison.schema.json",
+  "title": "Comparison",
+  "description": "Output of Compare-EntraPosture (engineering plan section 10.3). Rejects cross-tenant inputs by default and correlates objects by immutable IDs. Separately classifies six categories of change -- kept distinct rather than one flat diff, because 'the tenant changed' and 'we changed how we evaluate it' need different downstream handling. NotEvaluated is a coverage state, never a pass/fail transition.",
+  "type": "object",
+  "required": [
+    "comparisonId", "leftId", "rightId", "compatibility", "comparedAt",
+    "evidenceChanges", "resultTransitions", "coverageChanges",
+    "deviationChanges", "whatIfChanges", "evaluatorVersionChanges"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "comparisonId": { "type": "string", "minLength": 1 },
+    "leftId": { "type": "string", "minLength": 1, "description": "snapshotId or assessment evaluation-id of the earlier input." },
+    "rightId": { "type": "string", "minLength": 1 },
+    "compatibility": {
+      "type": "string",
+      "enum": ["Compatible", "CompatibleCrossVersion", "Incompatible"],
+      "description": "'CompatibleCrossVersion' must be visibly labeled per section 10.3; 'Incompatible' requires an explicit tested migration before any of the change arrays below can be trusted."
+    },
+    "comparedAt": { "type": "string", "format": "date-time" },
+    "evidenceChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["entityId", "changeType"],
+        "additionalProperties": false,
+        "properties": {
+          "entityId": { "type": "string", "minLength": 1 },
+          "changeType": { "type": "string", "enum": ["Added", "Removed", "Changed"] }
+        }
+      }
+    },
+    "resultTransitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["controlId", "scope", "fromStatus", "toStatus"],
+        "additionalProperties": false,
+        "properties": {
+          "controlId": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*-[0-9]{3}$" },
+          "scope": { "type": "string", "minLength": 1 },
+          "fromStatus": { "type": "string", "enum": ["Pass", "Fail", "NotApplicable", "NotEvaluated", "Error"] },
+          "toStatus": { "type": "string", "enum": ["Pass", "Fail", "NotApplicable", "NotEvaluated", "Error"] }
+        }
+      }
+    },
+    "coverageChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["collectorName", "fromEvidenceStatus", "toEvidenceStatus"],
+        "additionalProperties": false,
+        "properties": {
+          "collectorName": { "type": "string", "minLength": 1 },
+          "fromEvidenceStatus": { "type": "string", "enum": ["Collected", "Unavailable", "Denied", "Malformed", "Incomplete"] },
+          "toEvidenceStatus": { "type": "string", "enum": ["Collected", "Unavailable", "Denied", "Malformed", "Incomplete"] }
+        }
+      }
+    },
+    "deviationChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["deviationId", "changeType"],
+        "additionalProperties": false,
+        "properties": {
+          "deviationId": { "type": "string", "minLength": 1 },
+          "changeType": { "type": "string", "enum": ["Added", "Expired", "ScopeChanged", "Removed"] }
+        }
+      }
+    },
+    "whatIfChanges": {
+      "type": "array",
+      "description": "Empty until the What If subsystem (Phase 8) exists to populate scenarios/results -- the array shape is fixed now so downstream comparison consumers don't need a schema-breaking change later.",
+      "items": {
+        "type": "object",
+        "required": ["scenarioId", "changeType"],
+        "additionalProperties": false,
+        "properties": {
+          "scenarioId": { "type": "string", "minLength": 1 },
+          "changeType": { "type": "string", "enum": ["ScenarioAdded", "ScenarioRemoved", "ResultChanged"] }
+        }
+      }
+    },
+    "evaluatorVersionChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["controlId", "fromEvaluatorVersion", "toEvaluatorVersion"],
+        "additionalProperties": false,
+        "properties": {
+          "controlId": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*-[0-9]{3}$" },
+          "fromEvaluatorVersion": { "type": "string" },
+          "toEvaluatorVersion": { "type": "string" }
+        }
+      }
+    }
+  }
+}

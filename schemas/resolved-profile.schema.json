@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/resolved-profile.schema.json",
+  "title": "ResolvedProfile",
+  "description": "snapshot/resolved-profile.json -- the effective assessment profile after precedence resolution (ADR-026: built-in defaults, then profile file, then named CLI parameters; no secrets, script, or implicit environment-variable overrides).",
+  "type": "object",
+  "required": ["profileSchemaVersion", "precedenceTrace", "settings"],
+  "additionalProperties": false,
+  "properties": {
+    "profileSchemaVersion": { "type": "string", "minLength": 1 },
+    "precedenceTrace": {
+      "type": "array",
+      "description": "One entry per effective setting, recording which precedence layer supplied its final value -- exists so a resolved profile is auditable rather than opaque.",
+      "items": {
+        "type": "object",
+        "required": ["settingPath", "effectiveSource", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "settingPath": { "type": "string", "minLength": 1, "description": "Dotted path into 'settings' this entry documents." },
+          "effectiveSource": {
+            "type": "string",
+            "enum": ["BuiltInDefault", "ProfileFile", "NamedCliParameter"]
+          },
+          "value": {
+            "description": "The resolved value at this path. No constraint on shape here -- validated by whatever schema governs the specific setting."
+          }
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "description": "The fully resolved, effective settings tree actually used for this run. No environment-variable or implicit override is represented here -- ADR-026 forbids that as an input source, so there is nothing to record."
+    }
+  }
+}

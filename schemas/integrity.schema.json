@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/integrity.schema.json",
+  "title": "Integrity",
+  "description": "snapshot/integrity.json and assessments/<id>/integrity.json -- engineering plan section 8.4. Per-file SHA-256 plus the aggregate hash exactly as computed by Get-EntraPostureAggregateHash (src/Integrity/AggregateHash.ps1): sorted by normalized relative path, ordinal comparison, 'path\\0size\\0hash' records joined by LF.",
+  "type": "object",
+  "required": ["files", "aggregateHash", "recordCount", "signatureStatus", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["relativePath", "byteSize", "fileHash"],
+        "additionalProperties": false,
+        "properties": {
+          "relativePath": {
+            "type": "string",
+            "pattern": "^[^\\\\]+$",
+            "description": "Forward-slash only -- a literal backslash in a stored relativePath means normalization was skipped somewhere and this record cannot be trusted."
+          },
+          "byteSize": { "type": "integer", "minimum": 0 },
+          "fileHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Lowercase hex SHA-256, matching Get-EntraPostureFileHash's normalized output."
+          }
+        }
+      }
+    },
+    "aggregateHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "recordCount": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Must equal files array length -- checked by the Contract test suite, not expressible as a schema-only constraint against another array's length."
+    },
+    "signatureStatus": {
+      "type": "string",
+      "enum": ["Signed", "Unsigned", "InvalidSignature", "HashMismatch"],
+      "description": "Section 8.4's four bundle states. 'Unsigned' is a valid, visible state -- never silently omitted or defaulted to look like 'Signed'."
+    },
+    "signature": {
+      "description": "Detached signature reference, present only when signatureStatus is 'Signed' or 'InvalidSignature' (there is something to point at); explicit null for 'Unsigned' and 'HashMismatch'.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["detachedSignatureFile", "certificateThumbprint"],
+          "additionalProperties": false,
+          "properties": {
+            "detachedSignatureFile": { "type": "string", "minLength": 1 },
+            "certificateThumbprint": { "type": "string", "pattern": "^[0-9A-F]{40}$" }
+          }
+        }
+      ]
+    }
+  }
+}

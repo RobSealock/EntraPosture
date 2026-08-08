@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/whatif-result.schema.json",
+  "title": "WhatIfResult",
+  "description": "snapshot/whatif/results.jsonl -- engineering plan section 9.4: composite reports show Microsoft results, local coverage analysis, any disagreement, missing inputs, and the relevant schema/tool versions side by side. Microsoft's Graph evaluate API (POST /identity/conditionalAccess/evaluate) is authoritative for a fully specified supported scenario; local results are always labeled as modeled, never silently preferred on disagreement. Same Phase-3-contract-only status as whatif-scenario.schema.json.",
+  "type": "object",
+  "required": [
+    "scenarioId", "microsoftResult", "localModeledResult", "disagreement",
+    "missingInputs", "graphApiVersion", "evaluatedAt"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "scenarioId": { "type": "string", "minLength": 1, "description": "References a WhatIfScenario.scenarioId." },
+    "microsoftResult": {
+      "description": "Raw applicable-policies/grant-controls result from the Graph evaluate API, or explicit null if the call could not be made (see missingInputs).",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["matchedPolicyIds", "grantControlsRequired"],
+          "additionalProperties": false,
+          "properties": {
+            "matchedPolicyIds": { "type": "array", "items": { "type": "string" } },
+            "grantControlsRequired": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      ]
+    },
+    "localModeledResult": {
+      "description": "The tool's own deterministic simulation of the same scenario, explicitly labeled as modeled (never claimed equivalent to Microsoft's result on its own). Explicit null if local simulation is out of scope for this scenario.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["matchedPolicyIds", "grantControlsRequired"],
+          "additionalProperties": false,
+          "properties": {
+            "matchedPolicyIds": { "type": "array", "items": { "type": "string" } },
+            "grantControlsRequired": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      ]
+    },
+    "disagreement": {
+      "type": "string",
+      "enum": ["None", "Agree", "Disagree", "NotComparable"],
+      "description": "'NotComparable' when either result is null. No disagreement is silently resolved in favor of local logic (section 9.4)."
+    },
+    "missingInputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Empty array, not absent, when nothing was missing. Named reasons a result side is null (e.g. missing Identity Protection P2 license for risk-based conditions, per review plan WS4 task 11)."
+    },
+    "graphApiVersion": { "type": "string", "minLength": 1 },
+    "evaluatedAt": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/relationship.schema.json",
+  "title": "Relationship",
+  "description": "A directed edge between two entities: source, target, relationship type, assignment state, scope, provenance, and validity (engineering plan section 7).",
+  "type": "object",
+  "required": ["relationshipId", "sourceEntityId", "targetEntityId", "relationshipType", "assignmentState", "scope", "provenance", "validity"],
+  "additionalProperties": false,
+  "properties": {
+    "relationshipId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable ID for this specific edge, distinct from either endpoint's entityId."
+    },
+    "sourceEntityId": { "type": "string", "minLength": 1 },
+    "targetEntityId": { "type": "string", "minLength": 1 },
+    "relationshipType": {
+      "type": "string",
+      "enum": [
+        "MemberOf", "TransitiveMemberOf", "OwnerOf",
+        "DirectoryRoleAssignment", "AzureRoleAssignment",
+        "AppRoleAssignment", "OAuth2PermissionGrant",
+        "PimEligible", "PimActive",
+        "CrossTenantPartnerOverride",
+        "AccessReviewScope", "AccessPackageAssignment",
+        "AuthenticationContextAssignment"
+      ]
+    },
+    "assignmentState": {
+      "type": "string",
+      "enum": ["Active", "Eligible", "PendingActivation", "Expired", "Provisioned"],
+      "description": "Distinct from relationshipType so a PimEligible relationship's current state (e.g. Expired) can change without reclassifying the relationship itself."
+    },
+    "scope": {
+      "type": "string",
+      "description": "The scope this relationship is constrained to (e.g. an Azure resource/subscription/management-group path, an administrative-unit ID, or 'directory' for tenant-wide). Never absent -- use 'directory' explicitly rather than omitting the field."
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["collectorVersion", "sourceEndpoint", "collectedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "collectorVersion": { "type": "string", "minLength": 1 },
+        "sourceEndpoint": { "type": "string", "minLength": 1 },
+        "collectedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "validity": {
+      "type": "object",
+      "required": ["startDateTime", "endDateTime", "isTransitive"],
+      "additionalProperties": false,
+      "properties": {
+        "startDateTime": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Explicit null when the source system has no start boundary, never an absent property."
+        },
+        "endDateTime": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Explicit null when the relationship has no expiration."
+        },
+        "isTransitive": {
+          "type": "boolean",
+          "description": "Whether this edge represents a resolved transitive path (e.g. nested-group membership) rather than a direct assignment."
+        }
+      }
+    }
+  }
+}

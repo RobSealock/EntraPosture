@@ -1,0 +1,36 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-07T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "EntraPosture",
+      "version": "0.1.0",
+      "description": "Native PowerShell 7.4+ module that assesses a Microsoft Entra ID / Azure RBAC tenant's security posture: read-only Graph/ARM evidence collection, tamper-evident sealing, offline evaluation, and HTML/JSON/CSV/console reporting.",
+      "licenses": [],
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "README.md"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "platform",
+      "name": "PowerShell",
+      "version": ">=7.4.0",
+      "description": "Required runtime. Not vendored or redistributed -- supplied by the operator's own environment.",
+      "scope": "required"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "EntraPosture",
+      "dependsOn": ["PowerShell"]
+    }
+  ]
+}

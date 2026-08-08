@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/coverage.schema.json",
+  "title": "Coverage",
+  "description": "snapshot/coverage.json -- per-collector access/evidence accounting (ADR-018 / engineering plan section 7.2): access requested, rights present in token claims, rights expected, access actually verified, evidence status, and affected controls/report sections.",
+  "type": "object",
+  "required": ["collectors"],
+  "additionalProperties": false,
+  "properties": {
+    "collectors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "collectorName", "accessRequested", "rightsPresentInToken", "rightsExpected",
+          "accessVerified", "evidenceStatus", "affectedControlIds", "affectedReportSections"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "collectorName": { "type": "string", "minLength": 1 },
+          "accessRequested": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Scopes/roles the profile asked for on this collector's behalf."
+          },
+          "rightsPresentInToken": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Scopes/roles actually present in the acquired token's claims -- may differ from accessRequested (e.g. admin consent not granted for a requested scope)."
+          },
+          "rightsExpected": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "The least-privileged scope(s)/role(s) this collector's endpoints document as required, independent of what was requested or granted."
+          },
+          "accessVerified": {
+            "type": "boolean",
+            "description": "Whether a real endpoint call actually succeeded, not just whether the token claims looked sufficient. A Global Reader label never implies coverage on its own (section 7.2)."
+          },
+          "evidenceStatus": {
+            "type": "string",
+            "enum": ["Collected", "Unavailable", "Denied", "Malformed", "Incomplete"]
+          },
+          "affectedControlIds": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Control IDs that depend on this collector's evidence and are affected if evidenceStatus is not 'Collected'."
+          },
+          "affectedReportSections": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

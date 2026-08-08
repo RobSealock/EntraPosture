@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/whatif-scenario.schema.json",
+  "title": "WhatIfScenario",
+  "description": "snapshot/whatif/scenarios.jsonl -- one bulk-generated Conditional Access test case (engineering plan section 9.4, review plan section 7.1's CAEvaluationCase fields). This is a Phase 3 contract only: no CA simulation subsystem exists yet (Phase 8) -- the shape is fixed now, per review plan WS5's ordering rationale ('define contracts before building evaluators against unstable data shapes'), not because scenario generation is implemented.",
+  "type": "object",
+  "required": [
+    "scenarioId", "subject", "resource", "client", "platform", "deviceState",
+    "location", "risk", "authenticationContext"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "scenarioId": { "type": "string", "minLength": 1 },
+    "subject": {
+      "type": "object",
+      "required": ["principalType", "principalId"],
+      "additionalProperties": false,
+      "properties": {
+        "principalType": { "type": "string", "enum": ["User", "WorkloadIdentity", "Guest"] },
+        "principalId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "required": ["applicationId"],
+      "additionalProperties": false,
+      "properties": {
+        "applicationId": { "type": "string", "minLength": 1 },
+        "userAction": { "type": ["string", "null"] }
+      }
+    },
+    "client": {
+      "type": "string",
+      "enum": ["Browser", "MobileDesktopApp", "ExchangeActiveSync", "Other"]
+    },
+    "platform": { "type": ["string", "null"] },
+    "deviceState": {
+      "type": "object",
+      "required": ["isCompliant", "isHybridAzureAdJoined"],
+      "additionalProperties": false,
+      "properties": {
+        "isCompliant": { "type": ["boolean", "null"] },
+        "isHybridAzureAdJoined": { "type": ["boolean", "null"] }
+      }
+    },
+    "location": { "type": ["string", "null"], "description": "Named location ID, or explicit null for unspecified." },
+    "risk": {
+      "type": "object",
+      "required": ["userRiskLevel", "signInRiskLevel"],
+      "additionalProperties": false,
+      "properties": {
+        "userRiskLevel": { "type": ["string", "null"], "enum": ["low", "medium", "high", null] },
+        "signInRiskLevel": { "type": ["string", "null"], "enum": ["low", "medium", "high", null] }
+      }
+    },
+    "authenticationContext": { "type": ["string", "null"], "description": "Authentication context class reference ID (c1-c99), or explicit null." }
+  }
+}

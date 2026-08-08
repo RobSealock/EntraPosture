@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/snapshot-manifest.schema.json",
+  "title": "SnapshotManifest",
+  "description": "snapshot/manifest.json -- the sealed identity record for one snapshot bundle (engineering plan section 8.1). ADR-017: pins tool, schema, registry, evaluator, PowerShell, tenant/cloud, and collection/evaluation versions in every assessment.",
+  "type": "object",
+  "required": [
+    "snapshotId", "toolVersion", "schemaVersion", "controlRegistryVersion",
+    "powerShellVersion", "tenantScope", "cloud", "authMode",
+    "collectionStartUtc", "collectionEndUtc", "status", "partialReason", "sealedAt"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "Partial" } } },
+      "then": { "properties": { "partialReason": { "type": "string", "minLength": 1 } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "Sealed" } } },
+      "then": { "properties": { "partialReason": { "type": "null" } } }
+    }
+  ],
+  "properties": {
+    "snapshotId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable, unique identifier for this snapshot. Referenced by every assessment evaluated against it (section 8.3)."
+    },
+    "toolVersion": { "type": "string", "minLength": 1 },
+    "schemaVersion": { "type": "string", "minLength": 1 },
+    "controlRegistryVersion": { "type": "string", "minLength": 1 },
+    "powerShellVersion": { "type": "string", "minLength": 1 },
+    "tenantScope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tenant/cloud scope pseudonym or ID, per the profile's redaction mode (section 10.2 -- redaction occurs at export, so this may already be pseudonymized depending on how the manifest itself is persisted)."
+    },
+    "cloud": {
+      "type": "string",
+      "enum": ["Public"],
+      "description": "Only Microsoft public/commercial cloud is supported in v1 (ADR-032). Unsupported clouds must be rejected before this manifest is ever constructed, not represented as a value here."
+    },
+    "authMode": {
+      "type": "string",
+      "enum": ["DelegatedInteractive", "CertificateAppOnly"],
+      "description": "ADR-006: client secrets, managed identity, and persistent token caches are excluded from v1."
+    },
+    "collectionStartUtc": { "type": "string", "format": "date-time" },
+    "collectionEndUtc": { "type": "string", "format": "date-time" },
+    "status": {
+      "type": "string",
+      "enum": ["Sealed", "Partial"],
+      "description": "Partial snapshots are permitted but must be visibly marked (ADR-015) -- never silently indistinguishable from a complete snapshot."
+    },
+    "partialReason": {
+      "type": ["string", "null"],
+      "description": "Enforced non-null when status is 'Partial' and enforced null when status is 'Sealed' by this schema's allOf/if/then rules above -- always present as a key either way."
+    },
+    "sealedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When validation completed and the integrity record was written (section 8.3) -- distinct from collectionEndUtc."
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/control-result.schema.json",
+  "title": "ControlResult",
+  "description": "assessments/<id>/results.jsonl entries -- engineering plan section 9.2. Every control emits exactly one technical status per applicable scope. NotEvaluated means required evidence was absent/inaccessible; Error means evidence was expected but evaluator execution failed. Neither can be summarized as passing.",
+  "type": "object",
+  "required": [
+    "controlId", "controlVersion", "evaluatorVersion", "scope", "status", "reasonCode",
+    "rationale", "evidenceReferences", "collectionCoverage", "evaluatedAt",
+    "remediation", "correlationId", "deviation"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "controlId": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*-[0-9]{3}$" },
+    "controlVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "evaluatorVersion": {
+      "type": "string",
+      "description": "Version of the evaluator function's compiled implementation, tracked separately from controlVersion so a documentation-only control-definition change (e.g. remediation wording) doesn't imply the evaluation logic changed, and vice versa."
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The specific object/relationship this result applies to (e.g. a role ID, a policy ID), distinct from the tenant-wide applicability check."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["Pass", "Fail", "NotApplicable", "NotEvaluated", "Error"]
+    },
+    "reasonCode": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+-[A-Z0-9-]+$",
+      "description": "Must be one of the reason codes declared in this control's ControlDefinition (checked by the evaluation-layer contract test, not by this schema alone, since the valid set is per-control)."
+    },
+    "rationale": { "type": "string", "minLength": 1 },
+    "evidenceReferences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["entityId", "entityType"],
+        "additionalProperties": false,
+        "properties": {
+          "entityId": { "type": "string", "minLength": 1 },
+          "entityType": { "type": "string", "minLength": 1 }
+        }
+      },
+      "description": "Empty array (not absent) when a result genuinely cites no specific object, per section 8.2's explicit-array-semantics rule."
+    },
+    "collectionCoverage": {
+      "type": "string",
+      "enum": ["Complete", "Partial"],
+      "description": "Whether every evidence domain this control depends on had evidenceStatus 'Collected' in coverage.json. 'Partial' here is what actually drives a NotEvaluated status, not a separate judgment call by the evaluator."
+    },
+    "evaluatedAt": { "type": "string", "format": "date-time" },
+    "remediation": { "type": "string", "minLength": 1 },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "deviation": {
+      "description": "Reference to an approved Deviation record if one applies to this exact control/scope, or explicit null. Deviations annotate, they never rewrite status (section 9.3) -- status above always reflects the raw technical outcome regardless of this field.",
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "minLength": 1, "description": "deviationId of the applicable Deviation record." }
+      ]
+    }
+  }
+}

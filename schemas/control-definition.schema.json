@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/control-definition.schema.json",
+  "title": "ControlDefinition",
+  "description": "controls/*.psd1 (serialized to JSON for schema validation) -- engineering plan section 9.1's full field list. ADR-013: a control cannot supply a scriptblock, path, expression, or dynamic module -- evaluatorFunctionName only ever names a statically-bound function compiled into the module by the build.",
+  "type": "object",
+  "required": [
+    "controlId", "version", "title", "description", "rationale", "severity", "category",
+    "ownership", "requiredEvidenceDomains", "requiredPermissions", "applicability",
+    "reasonCodes", "expectedResultSemantics", "evaluatorFunctionName",
+    "evidenceRedactionPolicy", "remediation", "references", "provenance",
+    "externalMappings", "baselineDependency"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "controlId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*-[0-9]{3}$",
+      "description": "Immutable stable ID, e.g. 'XTA-001'. Never reused for a semantically different control even if retired."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Monotonic per-control semantic version (section 18), independent of the module/schema/registry versions."
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "rationale": { "type": "string", "minLength": 1 },
+    "severity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4,
+      "description": "1=Low .. 4=Critical, matching the severity scale already in use across the feature-parity matrix's designed controls."
+    },
+    "category": { "type": "string", "minLength": 1 },
+    "ownership": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Internal team/owner accountable for this control's results, per ADR-001's internal-ownership-domain rationale (e.g. 'Security Ops' for Conditional Access controls)."
+    },
+    "requiredEvidenceDomains": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Which entity/relationship domains this control's evaluator reads."
+    },
+    "requiredPermissions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["scope", "confirmed"],
+        "additionalProperties": false,
+        "properties": {
+          "scope": { "type": "string", "minLength": 1 },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Whether this scope was directly confirmed against Microsoft Graph/Azure documentation (as opposed to assumed by analogy) -- see 00-open-questions.md's permission-scope closure pass for why this field exists: several controls originally shipped with unconfirmed assumed scopes, two of which turned out to be wrong."
+          }
+        }
+      }
+    },
+    "applicability": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The condition under which this control produces a result at all (vs. NotApplicable)."
+    },
+    "reasonCodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["code", "resultStatus", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string", "pattern": "^[A-Z0-9]+-[A-Z0-9-]+$" },
+          "resultStatus": {
+            "type": "string",
+            "enum": ["Pass", "Fail", "NotApplicable", "NotEvaluated", "Error"],
+            "description": "Duplicated (not $ref'd) from control-result.schema.json's status enum deliberately -- cross-file $ref resolution is not exercised/guaranteed by this project's schema-validation wrapper (Test-EntraPostureSchema), so the two enums are kept in sync by the Contract test suite (tests/Contract/SchemaConsistency.Tests.ps1) instead of by schema composition."
+          },
+          "description": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "expectedResultSemantics": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Prose specification of exactly when this control returns each technical status -- the authoritative definition reason codes must agree with."
+    },
+    "evaluatorFunctionName": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]*-[A-Z][A-Za-z0-9]*$",
+      "description": "Name of the statically-bound evaluator function (ADR-013). The build fails if this name does not resolve to a real function declared in the module's source order."
+    },
+    "evidenceRedactionPolicy": {
+      "type": "string",
+      "enum": ["None", "Identifiers", "Strict"],
+      "description": "Minimum redaction mode this control's evidence supports without losing actionability, per section 10.2's export modes."
+    },
+    "remediation": { "type": "string", "minLength": 1 },
+    "references": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["disposition", "sourceProject", "notes"],
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "type": "string",
+          "enum": ["Reuse", "Adopt", "Reimplement", "Reference", "Reject"],
+          "description": "Section 2's disposition taxonomy. The Phase 9 license-provenance audit (00-open-questions.md section 1) checks this field specifically for the four downgraded rights-holder outreach items -- 'Reuse'/'Adopt' without an attached written approval record is a release blocker."
+        },
+        "sourceProject": {
+          "type": ["string", "null"],
+          "description": "Explicit null when disposition is 'Reimplement' with no source-tool prior art (e.g. a clean-room control authored directly from Microsoft documentation)."
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "externalMappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["framework", "identifier"],
+        "additionalProperties": false,
+        "properties": {
+          "framework": {
+            "type": "string",
+            "enum": ["EntraFalcon", "ConditionalAccessValidator", "Maester", "ScubaGear", "CIS", "CISA", "NIST", "MITRE"]
+          },
+          "identifier": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "baselineDependency": {
+      "description": "ADR-035: required (non-null) when this control compares tenant state against a Microsoft-defined default/baseline; explicit null otherwise.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["documentationUrl", "asOfDate", "citationStrength"],
+          "additionalProperties": false,
+          "properties": {
+            "documentationUrl": { "type": "string", "format": "uri" },
+            "asOfDate": { "type": "string", "format": "date" },
+            "citationStrength": {
+              "type": "string",
+              "enum": ["DirectQuote", "ApiExampleResponse", "Inference"],
+              "description": "Matches the citation-strength grading discipline already established across the designed controls (direct quote strongest, inference weakest, explicitly flagged as such)."
+            }
+          }
+        }
+      ]
+    }
+  }
+}

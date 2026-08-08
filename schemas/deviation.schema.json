@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/deviation.schema.json",
+  "title": "Deviation",
+  "description": "assessments/<id>/deviations.jsonl entries -- engineering plan section 9.3. Deviations are separate immutable annotations; they never modify the underlying technical status. Reports render 'Fail -- Approved Deviation' when applicable. Expired or scope-mismatched approvals have no effect.",
+  "type": "object",
+  "required": [
+    "deviationId", "controlId", "objectScope", "approver", "justification",
+    "owner", "startDate", "expiryDate", "compensatingControl", "evidence"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "deviationId": { "type": "string", "minLength": 1 },
+    "controlId": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*-[0-9]{3}$" },
+    "objectScope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Must exactly match a ControlResult's scope field for this deviation to apply -- a deviation approved for one object never silently covers another (scope-mismatched approvals have no effect, per section 9.3)."
+    },
+    "approver": { "type": "string", "minLength": 1 },
+    "justification": { "type": "string", "minLength": 1 },
+    "owner": { "type": "string", "minLength": 1 },
+    "startDate": { "type": "string", "format": "date" },
+    "expiryDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Required, not optional -- there is no such thing as a permanent deviation in this schema. An expired deviation has no effect (section 9.3), enforced at read time, not by this schema."
+    },
+    "compensatingControl": {
+      "type": ["string", "null"],
+      "description": "Explicit null when no compensating control is claimed."
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "References/citations supporting the justification. Empty array, not absent, when none were attached."
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/entity.schema.json",
+  "title": "Entity",
+  "description": "A single collected tenant object (user, group, application, role, etc.) normalized into the canonical snapshot model. Engineering plan section 7 (minimum data contracts) and section 8.2 (canonical record rules: missing vs. explicit null are distinct, arrays use explicit semantics).",
+  "type": "object",
+  "required": ["entityId", "entityType", "tenantScope", "displayName", "collectedAt", "collectorVersion", "sourceEndpoint", "properties", "redacted"],
+  "additionalProperties": false,
+  "properties": {
+    "entityId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable source ID from the origin system (e.g. a Graph or ARM object ID). Immutable across snapshots of the same object -- comparison (section 10.3) correlates on this field."
+    },
+    "entityType": {
+      "type": "string",
+      "enum": [
+        "User", "Group", "Application", "ServicePrincipal", "ManagedIdentity",
+        "DirectoryRole", "AdministrativeUnit", "ConditionalAccessPolicy",
+        "AzureRoleAssignment", "AzureRoleDefinition", "AzureSubscription",
+        "CrossTenantAccessPolicy", "AccessReviewDefinition", "AccessReviewInstance",
+        "AccessPackage", "AccessPackageAssignmentPolicy", "AccessPackageAssignment",
+        "AuthenticationContextClassReference",
+        "CrossTenantAccessPolicyPartner", "AuthorizationPolicy",
+        "AdminConsentRequestPolicy", "Organization", "AzureManagementGroup",
+        "SecurityDefaultsPolicy", "NamedLocation", "AuthenticationStrengthPolicy",
+        "RoleManagementPolicyAssignment"
+      ]
+    },
+    "tenantScope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tenant/cloud scope identifier this entity was collected from. Comparison rejects cross-tenant inputs by default (section 10.3) using this field."
+    },
+    "displayName": {
+      "type": ["string", "null"],
+      "description": "Tenant-controlled display name. Explicit null (not an absent property) when the source system genuinely has no display name for this entity type -- missing vs. null are distinct per section 8.2."
+    },
+    "collectedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC ISO 8601 timestamp. Culture-sensitive date formatting is forbidden project-wide (section 8.2)."
+    },
+    "collectorVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceEndpoint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The exact allowlisted endpoint/API this entity was collected from (section 7.3), for provenance."
+    },
+    "properties": {
+      "type": "object",
+      "description": "Collector-declared allowlisted fields for this entity type. Structure varies per entityType; validated by the owning collector's own field-allowlist, not by this generic envelope (section 8.4: collectors use field allowlists and do not persist full API responses by default)."
+    },
+    "redacted": {
+      "type": "boolean",
+      "description": "Whether this record has already had export-time redaction applied. Evaluation always uses unredacted evidence (section 10.2) -- this flag exists so a redacted record is never mistaken for a full one during re-evaluation."
+    }
+  }
+}

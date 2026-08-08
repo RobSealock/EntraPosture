@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/error-record.schema.json",
+  "title": "ErrorRecord",
+  "description": "Matches src/Common/NewErrorRecord.ps1's New-EntraPostureErrorRecord output exactly (built in Phase 2) -- engineering plan section 11: sanitized structured record with stable error ID, stage, collector/control source, retryability, endpoint class, correlation ID, and safe diagnostic detail.",
+  "type": "object",
+  "required": ["ErrorId", "Stage", "Source", "Retryable", "EndpointClass", "CorrelationId", "Message", "TimestampUtc"],
+  "additionalProperties": false,
+  "properties": {
+    "ErrorId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9\\-]{2,63}$",
+      "description": "Matches New-EntraPostureErrorRecord's -ErrorId ValidatePattern exactly."
+    },
+    "Stage": {
+      "type": "string",
+      "enum": ["Preflight", "Collection", "Validation", "Evaluation", "Reporting", "Comparison", "Build", "Orchestration"]
+    },
+    "Source": {
+      "type": ["string", "null"],
+      "description": "Explicit null when no specific collector/control raised the error (e.g. a Build-stage error)."
+    },
+    "Retryable": { "type": "boolean" },
+    "EndpointClass": {
+      "type": ["string", "null"],
+      "description": "Explicit null for non-transport errors (e.g. schema validation failures)."
+    },
+    "CorrelationId": { "type": "string", "format": "uuid" },
+    "Message": {
+      "type": "string",
+      "description": "Must pass Test-EntraPostureSafeDiagnosticText before this record is constructed -- enforced by New-EntraPostureErrorRecord itself, not re-validated by this schema (schema validation happens after construction, at serialization boundaries)."
+    },
+    "TimestampUtc": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

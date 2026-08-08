@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://entra-posture.internal/schemas/drift-event.schema.json",
+  "title": "DriftEvent",
+  "description": "One entry in Compare-EntraPostureConditionalAccessDrift's own DriftEvents array (VNext build order item 10, drift detection). Implements the review plan's own drift categories (WS4 task 12: policy added/removed/changed, effective coverage changed, expected case changed, object scope changed) and its own drift definition: 'a snapshot change identifies the fact, affected control/case, and old/new result.' 'Effective coverage changed' is answered via relatedResultTransitions, not a separate category here -- it is exactly what the pre-existing comparison ResultTransitions already computes. 'Object scope changed' is the isScopeChange flag on a PolicyModified event, not its own top-level category.",
+  "type": "object",
+  "required": [
+    "driftEventId", "category", "entityType", "entityId", "oldSnapshotId", "newSnapshotId",
+    "detectedAtUtc", "isScopeChange", "fieldChanges", "affectedControlIds",
+    "relatedResultTransitions", "summary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "driftEventId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deterministic, not random -- '<category>::<entityId>' -- so re-running the same comparison twice against the same two snapshots produces identical IDs."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["PolicyAdded", "PolicyRemoved", "PolicyModified", "ExpectedCaseAdded", "ExpectedCaseRemoved"]
+    },
+    "entityType": {
+      "type": "string",
+      "description": "'ConditionalAccessPolicy' for policy-level events, or the synthetic type 'CA-002-Scenario' for expected-case events (entityId is a scope key, not a real evidence entity, in that case)."
+    },
+    "entityId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The policy's entityId for policy-level events, or the CA-002 scope key (role::platform::clientAppType::locationTrust::signInRisk::userRisk) for expected-case events."
+    },
+    "oldSnapshotId": { "type": "string", "minLength": 1 },
+    "newSnapshotId": { "type": "string", "minLength": 1 },
+    "detectedAtUtc": { "type": "string", "format": "date-time" },
+    "isScopeChange": {
+      "type": ["boolean", "null"],
+      "description": "True when a PolicyModified event's fieldChanges include at least one conditions.users.* path. Null for every other category, where the concept doesn't apply -- explicit null, not omitted, per this project's own missing-vs-null discipline."
+    },
+    "fieldChanges": {
+      "type": "array",
+      "description": "Populated only for PolicyModified; empty for every other category.",
+      "items": {
+        "type": "object",
+        "required": ["fieldPath", "oldValue", "newValue"],
+        "properties": {
+          "fieldPath": { "type": "string", "minLength": 1 },
+          "oldValue": {},
+          "newValue": {}
+        }
+      }
+    },
+    "affectedControlIds": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*-[0-9]{3}$" },
+      "description": "CA-001 and CA-002 for policy-level events (either could plausibly be affected by any policy change); CA-002 only for expected-case events, since CA-001's own scenario grid is a fixed constant that never drifts."
+    },
+    "relatedResultTransitions": {
+      "type": "array",
+      "description": "The subset of the comparison's own ResultTransitions this drift event plausibly explains, correlated by EvidenceReferences (policy-level events) or Scope (expected-case events) -- answers the review plan's own 'affected control/case, and old/new result' requirement directly. Can be empty even for a real drift event, e.g. a policy change whose affected scenarios did not happen to change status.",
+      "items": {
+        "type": "object",
+        "required": ["controlId", "scope", "oldStatus", "newStatus"],
+        "properties": {
+          "controlId": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*-[0-9]{3}$" },
+          "scope": { "type": "string", "minLength": 1 },
+          "oldStatus": { "type": "string", "enum": ["Pass", "Fail", "NotApplicable", "NotEvaluated", "Error"] },
+          "newStatus": { "type": "string", "enum": ["Pass", "Fail", "NotApplicable", "NotEvaluated", "Error"] }
+        }
+      }
+    },
+    "summary": { "type": "string", "minLength": 1 }
+  }
+}
