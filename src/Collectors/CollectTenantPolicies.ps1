@@ -22,7 +22,7 @@ function Get-EntraPostureTenantPolicyCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'TenantPolicies' `
         -RequiredPermissions @('Policy.Read.All') `
         -EndpointsUsed @('/v1.0/policies/authorizationPolicy', '/v1.0/policies/adminConsentRequestPolicy') `
-        -AffectedControlIds @('AC-001', 'AC-002', 'USR-001', 'GRP-001') `
+        -AffectedControlIds @('AC-001', 'AC-002', 'USR-001', 'GRP-001', 'COL-002') `
         -AffectedReportSections @('Consent and Authorization')
 }
 

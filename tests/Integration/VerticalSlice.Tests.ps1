@@ -80,6 +80,7 @@ BeforeAll {
         'src/Controls/EvaluatePhishingResistantMfaEnforcement.ps1', 'src/Controls/EvaluateCombinedRiskPolicy.ps1',
         'src/Controls/EvaluateSignInRiskManagement.ps1', 'src/Controls/EvaluateUserRiskManagement.ps1',
         'src/Controls/EvaluateBroadMfaEnforcement.ps1', 'src/Controls/EvaluateTierZeroRoleCaCoverage.ps1',
+        'src/Controls/EvaluateGuestInviteRestriction.ps1',
         'src/Reporting/BuildAssessmentDocument.ps1', 'src/Reporting/RedactionApplication.ps1',
         'src/ConditionalAccess/ScenarioModel.ps1', 'src/ConditionalAccess/GenerateCombinatorialScenarios.ps1',
         'src/Reporting/RenderHtmlReport.ps1', 'src/Reporting/RenderCsvReport.ps1', 'src/Reporting/RenderConsoleReport.ps1', 'src/Reporting/CompareAssessment.ps1',

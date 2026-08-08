@@ -202,6 +202,7 @@
         'src/Controls/EvaluateUserRiskManagement.ps1'
         'src/Controls/EvaluateBroadMfaEnforcement.ps1'
         'src/Controls/EvaluateTierZeroRoleCaCoverage.ps1'
+        'src/Controls/EvaluateGuestInviteRestriction.ps1'
         'src/Reporting/BuildAssessmentDocument.ps1'
         'src/Reporting/RedactionApplication.ps1'
         'src/Reporting/RenderHtmlReport.ps1'
