@@ -27,6 +27,23 @@ function ConvertTo-EntraPostureGroupSettingEntity {
         leaving the property null otherwise -- the evaluator's own responsibility to interpret
         "no matching groupSetting at all" as the documented default, not this normalizer's.
 
+        PAS-001/002/003/004 fields (added 2026-08-08, VNext build order item 2, the 109-row
+        backlog completion pass): the "Password Rule Settings" groupSettingTemplate
+        (templateId `5cf42378-d67d-4f36-ba46-e8b86229381d`, confirmed directly against a live
+        worked example of this exact template re-fetched 2026-08-08) carries
+        enableBannedPasswordCheck, enableBannedPasswordCheckOnPremises,
+        bannedPasswordCheckOnPremisesMode, lockoutDurationInSeconds, and lockoutThreshold as
+        further named values in the same generic `values` array Group.Unified uses --
+        extracted the same way, by name, regardless of which template a given groupSetting
+        record actually is (a record from a different template simply has none of these names
+        present, leaving every field null, the same "extract what's present" discipline every
+        other normalizer in this project already follows). bannedPasswordListEntryCount is an
+        aggregated count of the tab/comma/semicolon/newline-delimited `BannedPasswordList` raw
+        value, never the raw list itself -- this project's own redaction discipline (the same
+        "counts, not raw contents" pattern `AccessReviewInstance`'s decision aggregation and
+        `ServicePrincipal`'s credential counts already established) applies here because the raw
+        list is itself sensitive password material, not because of any general size concern.
+
         .PARAMETER RawGroupSetting
         One element of GET /v1.0/groupSettings' 'value' array.
 
@@ -61,14 +78,37 @@ function ConvertTo-EntraPostureGroupSettingEntity {
     $displayName = if ($RawGroupSetting.Contains('displayName')) { $RawGroupSetting['displayName'] } else { $null }
     $templateId = if ($RawGroupSetting.Contains('templateId')) { $RawGroupSetting['templateId'] } else { $null }
 
-    $allowGuestsToBeGroupOwner = $null
-    if ($RawGroupSetting.Contains('values')) {
-        foreach ($settingValue in @($RawGroupSetting['values'])) {
-            if ($settingValue.Contains('name') -and [string]$settingValue['name'] -eq 'AllowGuestsToBeGroupOwner') {
-                $allowGuestsToBeGroupOwner = ([string]$settingValue['value'] -eq 'true')
-                break
+    $rawValues = if ($RawGroupSetting.Contains('values')) { @($RawGroupSetting['values']) } else { @() }
+
+    $getStringValue = {
+        param([string]$Name)
+        foreach ($settingValue in $rawValues) {
+            if ($settingValue.Contains('name') -and [string]$settingValue['name'] -eq $Name) {
+                return [string]$settingValue['value']
             }
         }
+        return $null
+    }
+    $getBoolValue = {
+        param([string]$Name)
+        $raw = & $getStringValue -Name $Name
+        if ($null -eq $raw) { return $null }
+        return ($raw -eq 'true')
+    }
+    $getIntValue = {
+        param([string]$Name)
+        $raw = & $getStringValue -Name $Name
+        if ($null -eq $raw) { return $null }
+        $parsed = 0
+        if ([int]::TryParse($raw, [ref]$parsed)) { return $parsed }
+        return $null
+    }
+
+    $bannedPasswordListEntryCount = $null
+    $rawBannedPasswordList = & $getStringValue -Name 'BannedPasswordList'
+    if ($null -ne $rawBannedPasswordList) {
+        $entries = @($rawBannedPasswordList -split '[\t,;\r\n]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $bannedPasswordListEntryCount = @($entries | Select-Object -Unique).Count
     }
 
     return [ordered]@{
@@ -80,8 +120,15 @@ function ConvertTo-EntraPostureGroupSettingEntity {
         collectorVersion = $CollectorVersion
         sourceEndpoint   = $SourceEndpoint
         properties       = [ordered]@{
-            templateId                = $templateId
-            allowGuestsToBeGroupOwner = $allowGuestsToBeGroupOwner
+            templateId                          = $templateId
+            allowGuestsToBeGroupOwner            = & $getBoolValue -Name 'AllowGuestsToBeGroupOwner'
+            enableGroupCreation                  = & $getBoolValue -Name 'EnableGroupCreation'
+            enableBannedPasswordCheck            = & $getBoolValue -Name 'EnableBannedPasswordCheck'
+            bannedPasswordListEntryCount         = $bannedPasswordListEntryCount
+            enableBannedPasswordCheckOnPremises  = & $getBoolValue -Name 'EnableBannedPasswordCheckOnPremises'
+            bannedPasswordCheckOnPremisesMode    = & $getStringValue -Name 'BannedPasswordCheckOnPremisesMode'
+            lockoutDurationInSeconds             = & $getIntValue -Name 'LockoutDurationInSeconds'
+            lockoutThreshold                     = & $getIntValue -Name 'LockoutThreshold'
         }
         redacted         = $false
     }

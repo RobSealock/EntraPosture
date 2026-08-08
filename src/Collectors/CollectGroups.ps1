@@ -17,7 +17,7 @@ function Get-EntraPostureGroupCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'Groups' `
         -RequiredPermissions @('Group.Read.All', 'GroupMember.Read.All') `
         -EndpointsUsed @('/v1.0/groups', '/v1.0/groups/{groupId}/transitiveMembers') `
-        -AffectedControlIds @('GRP-005') `
+        -AffectedControlIds @('GRP-005', 'GRP-003', 'GRP-004') `
         -AffectedReportSections @('Identity')
 }
 

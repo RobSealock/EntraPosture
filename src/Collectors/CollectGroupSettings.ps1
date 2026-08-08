@@ -20,7 +20,7 @@ function Get-EntraPostureGroupSettingsCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'GroupSettings' `
         -RequiredPermissions @('GroupSettings.Read.All') `
         -EndpointsUsed @('/v1.0/groupSettings') `
-        -AffectedControlIds @('COL-003') `
+        -AffectedControlIds @('COL-003', 'PAS-001', 'PAS-002', 'PAS-003', 'PAS-004', 'GRP-002') `
         -AffectedReportSections @('External Collaboration')
 }
 

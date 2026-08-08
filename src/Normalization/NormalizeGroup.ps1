@@ -11,6 +11,13 @@ function ConvertTo-EntraPostureGroupEntity {
         PIM-for-Groups/role-assignable-group findings (a role-assignable group is a materially
         different privilege-management surface than an ordinary security group).
 
+        visibility and membershipRule (added 2026-08-08, VNext build order item 2, the 109-row
+        backlog completion pass, GRP-003/GRP-004): both confirmed directly against the live
+        "List groups" Graph reference page's own worked example response (re-fetched
+        2026-08-08) as part of the *default* property set for GET /v1.0/groups -- unlike GET
+        /v1.0/users' documented smaller default set, this endpoint's default response already
+        includes both fields, so no $select change was needed in CollectGroups.ps1.
+
         .PARAMETER RawGroup
         .PARAMETER TenantScope
         .PARAMETER CollectorVersion
@@ -56,6 +63,8 @@ function ConvertTo-EntraPostureGroupEntity {
             securityEnabled    = if ($RawGroup.Contains('securityEnabled')) { $RawGroup['securityEnabled'] } else { $null }
             mailEnabled        = if ($RawGroup.Contains('mailEnabled')) { $RawGroup['mailEnabled'] } else { $null }
             isAssignableToRole = if ($RawGroup.Contains('isAssignableToRole')) { $RawGroup['isAssignableToRole'] } else { $null }
+            visibility         = if ($RawGroup.Contains('visibility')) { $RawGroup['visibility'] } else { $null }
+            membershipRule     = if ($RawGroup.Contains('membershipRule')) { $RawGroup['membershipRule'] } else { $null }
         }
         redacted         = $false
     }

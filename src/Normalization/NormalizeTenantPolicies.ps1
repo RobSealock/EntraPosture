@@ -26,6 +26,13 @@ function ConvertTo-EntraPostureAuthorizationPolicyEntity {
         default set -- see NormalizeUser.ps1's own DESCRIPTION for that distinct case), no
         collector $select change needed.
 
+        allowedToUseSSPR (top-level), allowedToCreateTenants and
+        allowedToReadBitlockerKeysForOwnedDevice (both defaultUserRolePermissions sub-fields)
+        added 2026-08-08 (VNext build order item 2, the 109-row backlog completion pass, PAS-005/
+        USR-002/USR-003) -- all three confirmed directly against the live authorizationPolicy and
+        defaultUserRolePermissions Graph reference pages, re-fetched 2026-08-08; same singleton,
+        same "no $select needed" reasoning as guestUserRoleId above.
+
         .PARAMETER RawPolicy
         The raw response object (singleton, no 'value' array wrapper).
 
@@ -74,6 +81,9 @@ function ConvertTo-EntraPostureAuthorizationPolicyEntity {
             allowedToReadOtherUsers              = if ($defaultUserRolePermissions -and $defaultUserRolePermissions.Contains('allowedToReadOtherUsers')) { $defaultUserRolePermissions['allowedToReadOtherUsers'] } else { $null }
             permissionGrantPoliciesAssigned      = @(if ($defaultUserRolePermissions -and $defaultUserRolePermissions.Contains('permissionGrantPoliciesAssigned')) { $defaultUserRolePermissions['permissionGrantPoliciesAssigned'] } else { @() })
             guestUserRoleId                      = if ($RawPolicy.Contains('guestUserRoleId')) { $RawPolicy['guestUserRoleId'] } else { $null }
+            allowedToUseSSPR                     = if ($RawPolicy.Contains('allowedToUseSSPR')) { $RawPolicy['allowedToUseSSPR'] } else { $null }
+            allowedToCreateTenants               = if ($defaultUserRolePermissions -and $defaultUserRolePermissions.Contains('allowedToCreateTenants')) { $defaultUserRolePermissions['allowedToCreateTenants'] } else { $null }
+            allowedToReadBitlockerKeysForOwnedDevice = if ($defaultUserRolePermissions -and $defaultUserRolePermissions.Contains('allowedToReadBitlockerKeysForOwnedDevice')) { $defaultUserRolePermissions['allowedToReadBitlockerKeysForOwnedDevice'] } else { $null }
         }
         redacted         = $false
     }

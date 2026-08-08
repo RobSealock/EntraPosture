@@ -18,7 +18,7 @@ function Get-EntraPosturePimEligibilityCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'PimEligibility' `
         -RequiredPermissions @('RoleManagement.Read.Directory') `
         -EndpointsUsed @('/v1.0/roleManagement/directory/roleEligibilityScheduleInstances') `
-        -AffectedControlIds @('PIM-002') `
+        -AffectedControlIds @('PIM-002', 'PIM-001') `
         -AffectedReportSections @('Privileged Roles')
 }
 
