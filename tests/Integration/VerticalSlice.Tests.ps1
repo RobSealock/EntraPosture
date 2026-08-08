@@ -47,7 +47,7 @@ BeforeAll {
         'src/Normalization/NormalizeAgentUser.ps1', 'src/Normalization/NormalizePimForGroups.ps1',
         'src/Normalization/NormalizeGroupSettings.ps1', 'src/Normalization/NormalizeUserSignInActivity.ps1',
         'src/Normalization/NormalizeServicePrincipalApiPermissions.ps1',
-        'src/Normalization/NormalizeUserRegistrationDetails.ps1',
+        'src/Normalization/NormalizeUserRegistrationDetails.ps1', 'src/Normalization/NormalizeRoleAssignmentScope.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -63,7 +63,7 @@ BeforeAll {
         'src/Collectors/CollectAgentIdentities.ps1', 'src/Collectors/CollectAgentUsers.ps1',
         'src/Collectors/CollectPimForGroups.ps1', 'src/Collectors/CollectGroupSettings.ps1',
         'src/Collectors/CollectUserSignInActivity.ps1', 'src/Collectors/CollectServicePrincipalApiPermissions.ps1',
-        'src/Collectors/CollectUserRegistrationDetails.ps1',
+        'src/Collectors/CollectUserRegistrationDetails.ps1', 'src/Collectors/CollectRoleAssignmentScopes.ps1',
         'src/Evidence/EvidenceFileRegistry.ps1', 'src/Evidence/EvidenceProvider.ps1',
         'src/Controls/ControlRegistry.ps1', 'src/Controls/EvaluateCrossTenantInboundTrust.ps1',
         'src/Controls/EvaluatePrivilegedRoleAssignment.ps1', 'src/Controls/DeviationApplication.ps1',
@@ -85,7 +85,7 @@ BeforeAll {
         'src/Controls/EvaluatePhishingResistantMfaEnforcement.ps1', 'src/Controls/EvaluateCombinedRiskPolicy.ps1',
         'src/Controls/EvaluateSignInRiskManagement.ps1', 'src/Controls/EvaluateUserRiskManagement.ps1',
         'src/Controls/EvaluateBroadMfaEnforcement.ps1', 'src/Controls/EvaluateTierZeroRoleCaCoverage.ps1',
-        'src/Controls/EvaluateGuestInviteRestriction.ps1',
+        'src/Controls/EvaluateGuestInviteRestriction.ps1', 'src/Controls/EvaluateCaPolicyScopedRoleAssignment.ps1',
         'src/Reporting/BuildAssessmentDocument.ps1', 'src/Reporting/RedactionApplication.ps1',
         'src/ConditionalAccess/ScenarioModel.ps1', 'src/ConditionalAccess/GenerateCombinatorialScenarios.ps1',
         'src/Reporting/RenderHtmlReport.ps1', 'src/Reporting/RenderCsvReport.ps1', 'src/Reporting/RenderConsoleReport.ps1', 'src/Reporting/CompareAssessment.ps1',
@@ -212,6 +212,7 @@ BeforeAll {
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/identityGovernance/privilegedAccess/group/assignmentScheduleInstances'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/groupSettings'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/reports/authenticationMethods/userRegistrationDetails'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/roleManagement/directory/roleAssignments'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
         )
     }
 
@@ -315,6 +316,7 @@ BeforeAll {
             '/v1.0/users/microsoft.graph.agentUser' = '{"value":[]}'
             '/v1.0/groupSettings' = '{"value":[]}'
             '/v1.0/reports/authenticationMethods/userRegistrationDetails' = '{"value":[]}'
+            '/v1.0/roleManagement/directory/roleAssignments' = '{"value":[]}'
         }
     }
 }

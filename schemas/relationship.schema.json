@@ -23,7 +23,7 @@
         "PimEligible", "PimActive",
         "CrossTenantPartnerOverride",
         "AccessReviewScope", "AccessPackageAssignment",
-        "AuthenticationContextAssignment"
+        "AuthenticationContextAssignment", "RoleAssignmentScope"
       ]
     },
     "assignmentState": {

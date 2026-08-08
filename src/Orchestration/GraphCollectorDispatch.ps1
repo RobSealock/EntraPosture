@@ -141,6 +141,9 @@ function Invoke-EntraPostureGraphCollectorDispatch {
         'UserRegistrationDetails' {
             Invoke-EntraPostureUserRegistrationDetailsCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
         }
+        'RoleAssignmentScopes' {
+            Invoke-EntraPostureRoleAssignmentScopeCollector -AccessToken $AccessToken -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
         default { $null }
     }
     return $result

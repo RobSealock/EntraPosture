@@ -15,7 +15,7 @@ operation exists anywhere in this codebase).
 
 | Permission | Collector(s) | Report section | Controls fed |
 |---|---|---|---|
-| `RoleManagement.Read.Directory` | DirectoryRoleAssignments, PimEligibility | Privileged Roles | PRIV-001, PIM-001, PIM-002, CA-001, USR-006, USR-010 |
+| `RoleManagement.Read.Directory` | DirectoryRoleAssignments, PimEligibility, RoleAssignmentScopes | Privileged Roles, Conditional Access | PRIV-001, PIM-001, PIM-002, CA-001, USR-006, USR-010, CAP-011 |
 | `Policy.Read.All` | ConditionalAccessPolicies, CrossTenantAccessPolicy, CrossTenantAccessPolicyPartners, TenantPolicies, NamedLocations | Conditional Access, Cross-Tenant Access, Consent and Authorization | CA-001, XTA-001, XTA-002, AC-001, AC-002, USR-001/002/003/004, GRP-001/004, PAS-005 |
 | `User.Read.All` | Users | Identity | USR-006/007/008/009/010/011 |
 | `Group.Read.All` | Groups | Identity | GRP-003/004/005, USR-006, USR-009/010/011 |
@@ -85,6 +85,11 @@ evidence domain short of its own declared requirement (`evidenceStatus` `Incompl
 `Collected`), so every control depending on it -- `ENT-004`/`005`/`009`/`010`,
 `AGT-002`/`003`/`006`/`007`, `MAI-001` -- is affected, not just the delegated-permission half's
 own controls. Grant both scopes together to collect this domain fully.
+**`RoleAssignmentScopes` (CAP-011) is fully covered by Global Reader**, unlike several of the
+gaps above -- the live "List unifiedRoleAssignments" Graph reference page names Global Reader
+directly as a supported built-in role for `GET /roleManagement/directory/roleAssignments`, and
+its own `RoleManagement.Read.Directory` requirement is already granted by every identity that
+also collects `DirectoryRoleAssignments`.
 
 ## Azure Resource Manager permissions (optional -- only needed if you pass `-ArmScope`)
 

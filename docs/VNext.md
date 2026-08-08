@@ -176,10 +176,35 @@ deliberately instead of incidentally.
    `AffectedControlIds` needed extending on four existing collectors. 91 controls now ship (up
    from 89).
 
-   Six canonical findings remain deferred, each still with a documented, specific reason:
-   `ENT-002`/`AGT-010`/`AGT-016` (beta-only `servicePrincipalSignInActivity`); `CAP-011` (needs
-   AU-scoped role assignment evidence -- next in the ranked order); `USR-013` (no crisp
-   "unnecessary sync" threshold); `ENT-013` (no citable malicious-app signature source).
+   **Batch 15, same day** (`00-open-questions.md` §44): `CAP-011` ("CA Policy Includes Roles With
+   Scoped Assignments"), the last of the 10 ranked-value findings before the genuine beta-API
+   blocker. Microsoft's own documentation states the underlying gap precisely: "Conditional
+   Access policies don't support users assigned a directory role scoped to an administrative unit
+   or directory roles scoped directly to an object, like through custom roles" (confirmed live
+   2026-08-08, `concept-conditional-access-users-groups.md`) -- a CA policy targeting "every
+   Global Administrator" via `conditions.users.includeRoles` silently does not cover a Global
+   Administrator whose own assignment happens to be administrative-unit-scoped. This needed a
+   genuinely new evidence source, exactly the reason this control was deferred in the original
+   triage pass: the existing `DirectoryRoleAssignment` collector's own endpoint
+   (`/directoryRoles/{id}/members`) structurally cannot return AU-scoped assignments. New
+   `RoleAssignmentScope` relationship type and evidence file (`GET
+   /roleManagement/directory/roleAssignments`, the `unifiedRoleAssignment` resource, whose own
+   `directoryScopeId` field distinguishes tenant-wide (`/`) from AU-scoped
+   (`/administrativeUnits/{id}`) assignments in one bulk paginated call) -- required adding a new
+   entry to `relationship.schema.json`'s own closed `relationshipType` enum, the first new
+   relationship type added this session. One result per enabled CA policy with a non-empty
+   `includeRoles`, Fail if any included role (matched by roleTemplateId, the same GUID space
+   `DirectoryRole`'s own entityId already uses) has at least one AU-scoped assignment. 92 controls
+   now ship (up from 91).
+
+   Five canonical findings remain deferred, each still with a documented, specific reason:
+   `ENT-002`/`AGT-010`/`AGT-016` (beta-only `servicePrincipalSignInActivity`); `USR-013` (no
+   crisp "unnecessary sync" threshold); `ENT-013` (no citable malicious-app signature source).
+   With this, the ranked-value ordering the project owner approved is fully worked through: 5 of
+   the original 10 deferred findings were buildable and are now built (`USR-012`, `USR-009`,
+   `USR-010`, `USR-011`, `CAP-011`); the remaining 5 stay deferred for the reasons stated above,
+   `ENT-002`/`AGT-010`/`AGT-016` being the genuine blocker this ranked-order pass was always
+   expected to stop at -- see `00-open-questions.md` §44 for the full close-out.
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

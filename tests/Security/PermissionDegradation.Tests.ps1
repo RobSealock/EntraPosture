@@ -48,7 +48,7 @@ BeforeAll {
         'src/Normalization/NormalizeAgentUser.ps1', 'src/Normalization/NormalizePimForGroups.ps1',
         'src/Normalization/NormalizeGroupSettings.ps1', 'src/Normalization/NormalizeUserSignInActivity.ps1',
         'src/Normalization/NormalizeServicePrincipalApiPermissions.ps1',
-        'src/Normalization/NormalizeUserRegistrationDetails.ps1',
+        'src/Normalization/NormalizeUserRegistrationDetails.ps1', 'src/Normalization/NormalizeRoleAssignmentScope.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -64,7 +64,7 @@ BeforeAll {
         'src/Collectors/CollectAgentIdentities.ps1', 'src/Collectors/CollectAgentUsers.ps1',
         'src/Collectors/CollectPimForGroups.ps1', 'src/Collectors/CollectGroupSettings.ps1',
         'src/Collectors/CollectUserSignInActivity.ps1', 'src/Collectors/CollectServicePrincipalApiPermissions.ps1',
-        'src/Collectors/CollectUserRegistrationDetails.ps1',
+        'src/Collectors/CollectUserRegistrationDetails.ps1', 'src/Collectors/CollectRoleAssignmentScopes.ps1',
         'src/Evidence/EvidenceFileRegistry.ps1', 'src/Evidence/EvidenceProvider.ps1',
         'src/Controls/ControlRegistry.ps1', 'src/Controls/EvaluateCrossTenantInboundTrust.ps1',
         'src/Controls/EvaluatePrivilegedRoleAssignment.ps1', 'src/Controls/DeviationApplication.ps1',
@@ -178,7 +178,8 @@ BeforeAll {
             '/v1.0/identityGovernance/entitlementManagement/accessPackages',
             '/v1.0/identityGovernance/entitlementManagement/accessPackages/{accessPackageId}',
             '/v1.0/identityGovernance/entitlementManagement/assignments',
-            '/v1.0/groupSettings'
+            '/v1.0/groupSettings',
+            '/v1.0/roleManagement/directory/roleAssignments'
         )
         return @($paths | ForEach-Object {
             [ordered]@{ Host = $HostHeader; PathTemplate = $_; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
@@ -208,6 +209,7 @@ BeforeAll {
             '/v1.0/identityGovernance/entitlementManagement/accessPackages' = '{"value":[]}'
             '/v1.0/identityGovernance/entitlementManagement/assignments' = '{"value":[]}'
             '/v1.0/groupSettings' = '{"value":[]}'
+            '/v1.0/roleManagement/directory/roleAssignments' = '{"value":[]}'
         }
     }
 }
@@ -268,6 +270,14 @@ Describe 'Global Reader-shaped identity: the two documented coverage gaps are ex
                 # already lacks in this curated token, so it lands in the same gap for the same
                 # reason, even though the "List userRegistrationDetails" reference page itself
                 # does name Global Reader as a supported role once the scope is granted.
+                # RoleAssignmentScopes (CAP-011, same continuation, batch 15) is deliberately NOT
+                # added here -- its only permission, RoleManagement.Read.Directory, is already in
+                # this curated Global-Reader-shaped set (DirectoryRoleAssignments already needs
+                # it), and the live "List unifiedRoleAssignments" reference page's own permissions
+                # table names Global Reader directly as a supported built-in role for this exact
+                # endpoint -- unlike every gap above, there is no missing scope and no unconfirmed
+                # role pairing, so it is expected to collect successfully and falls through to
+                # $otherGraphCollectors below like any other fully-covered collector.
                 $armCollectorNames = @('AzureRoleAssignments', 'AzureSubscriptions', 'AzureManagementGroups', 'AzureRoleDefinitions')
                 $deniedByDesign = @(
                     'AccessReviewDefinitions', 'AuthenticationStrengthPolicies',

@@ -25,7 +25,8 @@ BeforeAll {
         'src/Controls/TierZeroAzureRoleList.ps1',
         'src/Controls/EvaluateAzureLeastPrivilege.ps1',
         'src/Controls/EvaluateWeakProtectionEntraRole.ps1',
-        'src/Controls/EvaluateWeakProtectionAzureRole.ps1'
+        'src/Controls/EvaluateWeakProtectionAzureRole.ps1',
+        'src/Controls/EvaluateCaPolicyScopedRoleAssignment.ps1'
     )) {
         . (Join-Path $script:RepoRoot $relPath)
     }
@@ -121,6 +122,38 @@ BeforeAll {
                 roleDefinitionId = $RoleDefinitionId; principalId = $PrincipalId; principalType = $PrincipalType
                 scope = '/subscriptions/sub1'; createdOn = '2026-01-01T00:00:00Z'
             }
+        }
+    }
+
+    function script:New-TestCaPolicyWithRoles {
+        param([string]$Id, [string]$State = 'enabled', [string[]]$IncludeRoles = @())
+        return [ordered]@{
+            entityId = $Id; entityType = 'ConditionalAccessPolicy'; tenantScope = 't1'; displayName = $Id
+            collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false
+            properties = [ordered]@{
+                state = $State; createdDateTime = $null; modifiedDateTime = $null
+                conditions = [ordered]@{
+                    clientAppTypes = @(); signInRiskLevels = @(); userRiskLevels = @()
+                    users = [ordered]@{ includeUsers = @(); excludeUsers = @(); includeGroups = @(); excludeGroups = @(); includeRoles = $IncludeRoles; excludeRoles = @() }
+                    applications = [ordered]@{ includeApplications = @('All'); excludeApplications = @(); includeUserActions = @() }
+                    platforms = [ordered]@{ includePlatforms = @(); excludePlatforms = @() }
+                    locations = [ordered]@{ includeLocations = @(); excludeLocations = @() }
+                    devices = [ordered]@{ deviceFilterMode = $null; deviceFilterRule = $null }
+                    authenticationFlowTransferMethods = $null
+                }
+                grantControls = [ordered]@{ operator = 'OR'; builtInControls = @('mfa'); authenticationStrengthId = $null }
+            }
+        }
+    }
+
+    function script:New-TestRoleAssignmentScopeRelationship {
+        param([string]$PrincipalId, [string]$RoleId, [string]$Scope = 'directory')
+        return [ordered]@{
+            relationshipId = "$PrincipalId::$RoleId::RoleAssignmentScope::assignment-$PrincipalId-$RoleId"
+            sourceEntityId = $PrincipalId; targetEntityId = $RoleId
+            relationshipType = 'RoleAssignmentScope'; assignmentState = 'Active'; scope = $Scope
+            provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }
+            validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false }
         }
     }
 
@@ -435,5 +468,39 @@ Describe 'USR-011: Test-EntraPostureWeakProtectionAzureRoleControl' {
         $result = Test-EntraPostureWeakProtectionAzureRoleControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
         $result[0].Status | Should -Be 'NotApplicable'
         $result[0].ReasonCode | Should -Be 'USR-011-NO-TIER-ZERO-USERS'
+    }
+}
+
+Describe 'CAP-011: Test-EntraPostureCaPolicyScopedRoleAssignmentControl' {
+    It 'fails a role-scoped policy when an included role has an AU-scoped assignment, passes when all assignments are directory-wide, and ignores disabled policies and roles with no assignments at all' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-conditional-access.jsonl' -Records @(
+            (New-TestCaPolicyWithRoles -Id 'p-gapped' -IncludeRoles @('ga-role')),
+            (New-TestCaPolicyWithRoles -Id 'p-clean' -IncludeRoles @('pra-role')),
+            (New-TestCaPolicyWithRoles -Id 'p-no-assignments' -IncludeRoles @('unused-role')),
+            (New-TestCaPolicyWithRoles -Id 'p-disabled' -State 'disabled' -IncludeRoles @('ga-role'))
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-role-assignment-scopes.jsonl' -Records @(
+            (New-TestRoleAssignmentScopeRelationship -PrincipalId 'u1' -RoleId 'ga-role' -Scope 'directory'),
+            (New-TestRoleAssignmentScopeRelationship -PrincipalId 'u2' -RoleId 'ga-role' -Scope 'administrativeUnit'),
+            (New-TestRoleAssignmentScopeRelationship -PrincipalId 'u3' -RoleId 'pra-role' -Scope 'directory')
+        )
+        $result = Test-EntraPostureCaPolicyScopedRoleAssignmentControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        ($result | Where-Object { $_.Scope -eq 'p-gapped' }).Status | Should -Be 'Fail'
+        ($result | Where-Object { $_.Scope -eq 'p-gapped' }).ReasonCode | Should -Be 'CAP-011-SCOPED-ASSIGNMENT-GAP'
+        ($result | Where-Object { $_.Scope -eq 'p-clean' }).Status | Should -Be 'Pass'
+        ($result | Where-Object { $_.Scope -eq 'p-clean' }).ReasonCode | Should -Be 'CAP-011-NO-SCOPED-ASSIGNMENT-GAP'
+        ($result | Where-Object { $_.Scope -eq 'p-no-assignments' }).Status | Should -Be 'Pass'
+        ($result | Where-Object { $_.Scope -eq 'p-disabled' }) | Should -BeNullOrEmpty
+    }
+
+    It 'is NotApplicable when no enabled policy names any role' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-conditional-access.jsonl' -Records @(
+            (New-TestCaPolicyWithRoles -Id 'p1' -IncludeRoles @())
+        )
+        $result = Test-EntraPostureCaPolicyScopedRoleAssignmentControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $result[0].Status | Should -Be 'NotApplicable'
+        $result[0].ReasonCode | Should -Be 'CAP-011-NO-ROLE-SCOPED-POLICIES'
     }
 }

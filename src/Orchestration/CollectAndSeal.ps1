@@ -46,6 +46,7 @@ function Get-EntraPostureAllCollectorRequirement {
         Get-EntraPostureUserSignInActivityCollectorRequirement
         Get-EntraPostureServicePrincipalApiPermissionsCollectorRequirement
         Get-EntraPostureUserRegistrationDetailsCollectorRequirement
+        Get-EntraPostureRoleAssignmentScopeCollectorRequirement
     )
     return ,@($requirements)
 }

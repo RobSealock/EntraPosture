@@ -34,6 +34,7 @@ function Get-EntraPostureEvidenceFileRegistry {
     return ,@(
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'DirectoryRole';                        RelativePath = 'evidence/entra-roles.jsonl';                              ContractName = 'entity' }
         [ordered]@{ RecordKind = 'Relationship'; TypeName = 'DirectoryRoleAssignment';               RelativePath = 'evidence/entra-role-assignments.jsonl';                   ContractName = 'relationship' }
+        [ordered]@{ RecordKind = 'Relationship'; TypeName = 'RoleAssignmentScope';                   RelativePath = 'evidence/entra-role-assignment-scopes.jsonl';             ContractName = 'relationship' }
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'AzureRoleAssignment';                  RelativePath = 'evidence/azure-role-assignments.jsonl';                   ContractName = 'entity' }
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'ConditionalAccessPolicy';              RelativePath = 'evidence/entra-conditional-access.jsonl';                 ContractName = 'entity' }
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'CrossTenantAccessPolicy';              RelativePath = 'evidence/entra-cross-tenant-access-policy.jsonl';         ContractName = 'entity' }

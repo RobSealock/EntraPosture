@@ -184,17 +184,14 @@ it is.
   no application-permission path at all -- so it's structurally `NotEvaluated` under
   `-AuthMode Certificate`, independent of granted permissions.
 - The EntraFalcon/Conditional Access Validator feature-parity matrix's own canonical registry
-  (`15-feature-parity-matrix.md` section 3.3, 82 findings) is now fully triaged: 76 built as
-  native controls, 6 deliberately excluded or deferred, each with a specific, documented reason
+  (`15-feature-parity-matrix.md` section 3.3, 82 findings) is now fully triaged: 77 built as
+  native controls, 5 deliberately excluded or deferred, each with a specific, documented reason
   rather than silently dropped:
   - `ENT-002`, `AGT-010`, `AGT-016` (inactive enterprise apps / agent identities / agent users) --
     all three need `servicePrincipalSignInActivity`, confirmed **beta-only** in Microsoft Graph
     with no v1.0/stable equivalent (the full v1.0 `servicePrincipal` property table has no
     sign-in-related field at all). This project has never called a Preview/beta endpoint from any
     of its ~30 collectors and does not start here.
-  - `CAP-011` (CA policy includes roles with scoped assignments) -- needs administrative-unit-
-    scoped role assignment evidence; this project's only role-assignment collector doesn't return
-    AU-scoped assignments at all.
   - `USR-013` (unnecessary on-premises sync) -- no crisp Microsoft-documented threshold for
     "unnecessary" exists to build against.
   - `ENT-013` (known malicious enterprise applications) -- the matrix's own disposition already
@@ -205,12 +202,14 @@ it is.
   Conditional Access (Entra ID P1+) -- confirmed to fail cleanly, not silently, against an
   unlicensed tenant.
 
-91 native controls are built and shipped, including `AR-002` (access review instance health),
+92 native controls are built and shipped, including `AR-002` (access review instance health),
 `AUTHCTX-001`/`002` (authentication context coverage and effectiveness), `CA-002` (full
 combinatorial Conditional Access gap analysis, generalizing beyond `CA-001`'s bounded 16-scenario
 grid), `EM-001`/`EM-002` (entitlement management), the full `PIM-002` through `PIM-009` set (plus
 `PIM-001`, basic PIM adoption), 15 agent-identity findings (`AGT-001`-`009`, `011`-`015`, `017`),
-PIM-for-Groups (`PIMG-001`/`002`), 10 Conditional Access policy-shape checks (`CAP-001`-`010`), 3
+PIM-for-Groups (`PIMG-001`/`002`), 11 Conditional Access policy-shape checks (`CAP-001`-`011`,
+the last of which reads a new administrative-unit-scope-aware `RoleAssignmentScope` evidence
+domain no earlier control needed), 3
 guest/external collaboration checks (`COL-001`-`003`), foreign/internal enterprise application and
 managed identity role-holding and credential checks (`ENT-001`, `ENT-006`/`007`/`011`/`012`,
 `MAI-002`/`003`), app-registration/hybrid-identity checks (`APP-001`/`002`, `USR-007`/`008`),
