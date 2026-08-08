@@ -35,6 +35,7 @@ operation exists anywhere in this codebase).
 | `Directory.Read.All` | AgentUsers (ownedObjects N+1 only) | Agent Identities | AGT-015 |
 | `PrivilegedEligibilitySchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001 |
 | `PrivilegedAssignmentSchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001, PIMG-002 |
+| `GroupSettings.Read.All` | GroupSettings | External Collaboration | COL-003 |
 
 **Live What-If comparison** (the ad hoc `scripts/Compare-WhatIf.ps1` utility, not part of the
 core assessment pipeline) additionally calls `POST /identity/conditionalAccess/evaluate`, whose

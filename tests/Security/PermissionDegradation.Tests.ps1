@@ -46,6 +46,7 @@ BeforeAll {
         'src/Normalization/NormalizeOwnerOf.ps1', 'src/Normalization/NormalizeAgentIdentityBlueprint.ps1',
         'src/Normalization/NormalizeAgentIdentityBlueprintPrincipal.ps1', 'src/Normalization/NormalizeAgentIdentity.ps1',
         'src/Normalization/NormalizeAgentUser.ps1', 'src/Normalization/NormalizePimForGroups.ps1',
+        'src/Normalization/NormalizeGroupSettings.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -59,7 +60,7 @@ BeforeAll {
         'src/Collectors/CollectRoleManagementPolicyAssignments.ps1', 'src/Collectors/CollectAccessPackages.ps1',
         'src/Collectors/CollectAgentIdentityBlueprints.ps1', 'src/Collectors/CollectAgentIdentityBlueprintPrincipals.ps1',
         'src/Collectors/CollectAgentIdentities.ps1', 'src/Collectors/CollectAgentUsers.ps1',
-        'src/Collectors/CollectPimForGroups.ps1',
+        'src/Collectors/CollectPimForGroups.ps1', 'src/Collectors/CollectGroupSettings.ps1',
         'src/Evidence/EvidenceFileRegistry.ps1', 'src/Evidence/EvidenceProvider.ps1',
         'src/Controls/ControlRegistry.ps1', 'src/Controls/EvaluateCrossTenantInboundTrust.ps1',
         'src/Controls/EvaluatePrivilegedRoleAssignment.ps1', 'src/Controls/DeviationApplication.ps1',
@@ -112,8 +113,12 @@ BeforeAll {
             'RoleManagement.Read.Directory', 'Policy.Read.All', 'User.Read.All', 'Group.Read.All',
             'GroupMember.Read.All', 'Application.Read.All', 'AdministrativeUnit.Read.All',
             'AuthenticationContext.Read.All', 'Organization.Read.All', 'RoleManagementPolicy.Read.Directory',
-            'EntitlementManagement.Read.All'
+            'EntitlementManagement.Read.All', 'GroupSettings.Read.All'
             # AccessReview.Read.All and Policy.Read.AuthenticationMethod deliberately omitted.
+            # GroupSettings.Read.All included: the live "List settings" Graph reference page
+            # (re-fetched 2026-08-08) names Global Reader among the built-in roles that can read
+            # basic properties on setting templates and settings, unlike this fixture's other
+            # deliberate gaps.
         )
     }
 
@@ -168,7 +173,8 @@ BeforeAll {
             '/v1.0/identity/conditionalAccess/namedLocations', '/v1.0/policies/roleManagementPolicyAssignments',
             '/v1.0/identityGovernance/entitlementManagement/accessPackages',
             '/v1.0/identityGovernance/entitlementManagement/accessPackages/{accessPackageId}',
-            '/v1.0/identityGovernance/entitlementManagement/assignments'
+            '/v1.0/identityGovernance/entitlementManagement/assignments',
+            '/v1.0/groupSettings'
         )
         return @($paths | ForEach-Object {
             [ordered]@{ Host = $HostHeader; PathTemplate = $_; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
@@ -197,6 +203,7 @@ BeforeAll {
             '/v1.0/policies/roleManagementPolicyAssignments' = '{"value":[]}'
             '/v1.0/identityGovernance/entitlementManagement/accessPackages' = '{"value":[]}'
             '/v1.0/identityGovernance/entitlementManagement/assignments' = '{"value":[]}'
+            '/v1.0/groupSettings' = '{"value":[]}'
         }
     }
 }

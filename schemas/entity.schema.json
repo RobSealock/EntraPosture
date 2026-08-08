@@ -25,7 +25,8 @@
         "AdminConsentRequestPolicy", "Organization", "AzureManagementGroup",
         "SecurityDefaultsPolicy", "NamedLocation", "AuthenticationStrengthPolicy",
         "RoleManagementPolicyAssignment",
-        "AgentIdentityBlueprint", "AgentIdentityBlueprintPrincipal", "AgentIdentity", "AgentUser"
+        "AgentIdentityBlueprint", "AgentIdentityBlueprintPrincipal", "AgentIdentity", "AgentUser",
+        "GroupSetting"
       ]
     },
     "tenantScope": {

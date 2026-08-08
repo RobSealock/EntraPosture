@@ -129,6 +129,9 @@ function Invoke-EntraPostureGraphCollectorDispatch {
         'PimForGroups' {
             Invoke-EntraPosturePimForGroupsCollector -AccessToken $AccessToken -RequestHostOverride $RequestHostOverride @sendCommonParams
         }
+        'GroupSettings' {
+            Invoke-EntraPostureGroupSettingsCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
         default { $null }
     }
     return $result

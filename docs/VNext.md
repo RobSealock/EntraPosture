@@ -63,9 +63,17 @@ deliberately instead of incidentally.
    into one canonical finding). 63 controls now ship. A real bug was found and fixed in the
    process: wrapping `Get-EntraPostureRelationship`'s already comma-protected return value in a
    second `@(...)` at the call site nests the result instead of flattening it, silently inflating
-   an empty result to a phantom 1-element array -- see §37 for the full repro. `COL-003` and
-   `USR-005` (tasks #116/#117) remain the next new-evidence items; `USR-010`/`011` remain deferred
-   (too large in scope, no crisp "weak" definition yet). ~120 rows remain (of the original ~150
+   an empty result to a phantom 1-element array -- see §37 for the full repro. **Batch 7, same
+   day**: `COL-003` ("Guests Allowed to Own M365 Groups") built -- the first genuinely new
+   collector this phase (`CollectGroupSettings.ps1`, `GET /v1.0/groupSettings`, a new
+   `GroupSettings.Read.All` permission scope, and a new `GroupSetting` entity type/normalizer
+   handling the generic name-value `values` collection shape, confirmed against live Microsoft
+   Graph documentation including the reference page's own worked example and the
+   `AllowGuestsToBeGroupOwner` template default). A tenant with no customized `Group.Unified`
+   settings evaluates as Pass on that documented default, not `NotApplicable` -- absence of the
+   settings object is a real, meaningful outcome, not missing evidence. 64 controls now ship.
+   `USR-005` (task #117) remains the next new-evidence item; `USR-010`/`011` remain deferred (too
+   large in scope, no crisp "weak" definition yet). ~119 rows remain (of the original ~150
    estimate).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
