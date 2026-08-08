@@ -17,7 +17,18 @@ function ConvertTo-EntraPostureServicePrincipalEntity {
         data.
 
         Field allowlist per section 8.4: id, appId, displayName, servicePrincipalType,
-        accountEnabled, appOwnerOrganizationId.
+        accountEnabled, appOwnerOrganizationId, keyCredentialCount, passwordCredentialCount.
+
+        keyCredentialCount/passwordCredentialCount (added 2026-08-08, VNext build order item 2
+        batch 5, ENT-001): servicePrincipal carries its own, independently-settable
+        keyCredentials/passwordCredentials collections (confirmed directly against the live
+        servicePrincipal Graph reference page, re-fetched 2026-08-08 -- both present in the
+        standard JSON representation with no "not returned by default" caveat), distinct from
+        the associated Application object's own passwordCredentials (which APP-001 already
+        checks) -- a credential can be added directly to a service principal via the
+        Add key/Add password APIs independently of its application registration. Both aggregated
+        to bare counts and never persisted, the same redaction-by-construction choice already
+        applied elsewhere.
 
         appOwnerOrganizationId (added 2026-08-08, VNext build order item 2 batch 3 -- unlocks
         ENT-006/007/011/012's foreign/internal split with zero new collector call, the same
@@ -77,6 +88,8 @@ function ConvertTo-EntraPostureServicePrincipalEntity {
             servicePrincipalType  = $spType
             accountEnabled        = if ($RawServicePrincipal.Contains('accountEnabled')) { $RawServicePrincipal['accountEnabled'] } else { $null }
             appOwnerOrganizationId = if ($RawServicePrincipal.Contains('appOwnerOrganizationId')) { $RawServicePrincipal['appOwnerOrganizationId'] } else { $null }
+            keyCredentialCount    = @(if ($RawServicePrincipal.Contains('keyCredentials')) { $RawServicePrincipal['keyCredentials'] } else { @() }).Count
+            passwordCredentialCount = @(if ($RawServicePrincipal.Contains('passwordCredentials')) { $RawServicePrincipal['passwordCredentials'] } else { @() }).Count
         }
         redacted         = $false
     }

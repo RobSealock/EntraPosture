@@ -16,7 +16,7 @@ function Get-EntraPostureApplicationCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'Applications' `
         -RequiredPermissions @('Application.Read.All') `
         -EndpointsUsed @('/v1.0/applications') `
-        -AffectedControlIds @('APP-001') `
+        -AffectedControlIds @('APP-001', 'APP-002') `
         -AffectedReportSections @('Applications')
 }
 

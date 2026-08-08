@@ -39,19 +39,23 @@ deliberately instead of incidentally.
 2. **A first slice of the remaining ~150 matrix rows** -- rows that need zero new evidence domains
    or collectors, cross-checked against EntraFalcon's equivalent logic per above. **Started
    2026-08-07**: `USR-001` and `GRP-001` done. **Resumed and substantially extended 2026-08-08**
-   across four batches (`00-open-questions.md` §35): `CAP-001`-`010` (Conditional Access
+   across five batches (`00-open-questions.md` §35/§36): `CAP-001`-`010` (Conditional Access
    policy-shape checks), `COL-002`, `MAI-002`/`003`, `AGT-013`/`014` (resolved from "blocked"),
    four normalizer field extensions (`ServicePrincipal.appOwnerOrganizationId`, `Application.
    passwordCredentialCount`, `User.onPremisesSyncEnabled`, `AuthorizationPolicy.guestUserRoleId`),
-   then `ENT-006`/`007`/`011`/`012`, `APP-001`, `USR-007`/`008`, `COL-001`. 23 new controls total
-   this pass (58 now ship, up from 35). `CAP-011` and `USR-013` deliberately excluded/deferred --
-   see §35 for why. Several EF-GRP-* rows initially thought buildable turned out to already be
-   consolidated into the existing `GRP-005`, not separate findings -- caught before building
-   duplicates, also in §35. See `00-open-questions.md` §20 for the original evaluation-pipeline
-   bug this slice first surfaced (`AffectedControlIds` is load-bearing for per-control
-   evidence-completeness, not just descriptive) -- §35 found three more instances of the same
-   bug class. ~125 rows remain (of the original ~150 estimate), a mix of Medium-confidence
-   candidates (field capture uncertain) and rows needing genuinely new evidence.
+   `ENT-006`/`007`/`011`/`012`, `APP-001`, `USR-007`/`008`, `COL-001`, then a confirm-medium pass
+   (§36) added `ENT-001` and `APP-002` (two more field extensions: `ServicePrincipal.
+   keyCredentialCount`/`passwordCredentialCount`, `Application.appInstancePropertyLockEnabled`).
+   25 new controls total this pass (60 now ship, up from 35). `CAP-011` and `USR-013` deliberately
+   excluded/deferred; `COL-003`/`USR-005`/`USR-010`/`USR-011` confirmed to need genuinely new
+   evidence (a `groupSettings` collector, `AuditLog.Read.All` + P1/P2 licensing, and
+   authentication-methods data respectively) and were not built -- see §36 for the full
+   confirm-pass writeup. Several EF-GRP-* rows initially thought buildable turned out to already
+   be consolidated into the existing `GRP-005`, not separate findings -- caught before building
+   duplicates, in §35. See `00-open-questions.md` §20 for the original evaluation-pipeline bug
+   this slice first surfaced (`AffectedControlIds` is load-bearing for per-control
+   evidence-completeness, not just descriptive) -- §35 found three more instances of the same bug
+   class. ~123 rows remain (of the original ~150 estimate).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

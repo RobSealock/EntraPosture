@@ -215,6 +215,8 @@
         'src/Controls/EvaluateHybridUserEntraRole.ps1'
         'src/Controls/EvaluateHybridUserAzureRole.ps1'
         'src/Controls/EvaluateGuestAccessLevel.ps1'
+        'src/Controls/EvaluateEnterpriseAppClientCredentials.ps1'
+        'src/Controls/EvaluateAppInstancePropertyLock.ps1'
         'src/Reporting/BuildAssessmentDocument.ps1'
         'src/Reporting/RedactionApplication.ps1'
         'src/Reporting/RenderHtmlReport.ps1'

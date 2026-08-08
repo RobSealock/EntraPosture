@@ -22,6 +22,15 @@ function ConvertTo-EntraPostureApplicationEntity {
         never persisted, the same aggregate-not-raw redaction-by-construction choice
         ConvertTo-EntraPostureAgentIdentityBlueprintEntity already made for the identical field.
 
+        appInstancePropertyLockEnabled (added 2026-08-08, VNext build order item 2 batch 5,
+        APP-002): the servicePrincipalLockConfiguration sub-object's own isEnabled field --
+        confirmed present on the same default GET /v1.0/applications response, no additional
+        $select needed (the live application Graph reference page, re-fetched 2026-08-08, shows
+        it in the standard JSON representation with no "not returned by default" caveat). Only
+        the boolean is extracted, not the sub-object's other lock-granularity fields
+        (allProperties/credentialsWithUsageSign/etc.), since APP-002's own check is simply
+        whether the lock is enabled at all.
+
         .PARAMETER RawApplication
         .PARAMETER TenantScope
         .PARAMETER CollectorVersion
@@ -67,6 +76,7 @@ function ConvertTo-EntraPostureApplicationEntity {
             signInAudience   = if ($RawApplication.Contains('signInAudience')) { $RawApplication['signInAudience'] } else { $null }
             createdDateTime  = if ($RawApplication.Contains('createdDateTime')) { $RawApplication['createdDateTime'] } else { $null }
             passwordCredentialCount = @(if ($RawApplication.Contains('passwordCredentials')) { $RawApplication['passwordCredentials'] } else { @() }).Count
+            appInstancePropertyLockEnabled = if ($RawApplication.Contains('servicePrincipalLockConfiguration') -and $RawApplication['servicePrincipalLockConfiguration'] -and $RawApplication['servicePrincipalLockConfiguration'].Contains('isEnabled')) { $RawApplication['servicePrincipalLockConfiguration']['isEnabled'] } else { $null }
         }
         redacted         = $false
     }
