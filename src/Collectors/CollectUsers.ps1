@@ -7,11 +7,11 @@ function Get-EntraPostureUserCollectorRequirement {
 
         .DESCRIPTION
         User.Read.All is Microsoft's documented least-privileged permission for listing users.
-        No control depends on User entities directly yet -- PIM/role-assignment relationships
+        AffectedControlIds was empty through 2026-08-07 -- PIM/role-assignment relationships
         (Phase 5's PRIV-001, Phase 6's PimEligible) reference user entityIds without requiring
-        the User entity itself to be independently collected -- so AffectedControlIds is empty,
-        matching the same "real, not a placeholder" rationale already used for
-        AzureRoleAssignments in Phase 5.
+        the User entity itself to be independently collected. USR-007/008 (2026-08-08, VNext
+        build order item 2 batch 4) are the first controls to read the User entity's own
+        properties directly (onPremisesSyncEnabled).
     #>
     [CmdletBinding()]
     [OutputType([System.Collections.Specialized.OrderedDictionary])]
@@ -20,7 +20,7 @@ function Get-EntraPostureUserCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'Users' `
         -RequiredPermissions @('User.Read.All') `
         -EndpointsUsed @('/v1.0/users') `
-        -AffectedControlIds @() `
+        -AffectedControlIds @('USR-007', 'USR-008') `
         -AffectedReportSections @('Identity')
 }
 
