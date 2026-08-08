@@ -9,8 +9,13 @@ function Get-EntraPostureAzureRoleAssignmentCollectorRequirement {
         .DESCRIPTION
         Microsoft.Authorization/roleAssignments/read is the documented least-privileged Azure
         action for listing RBAC role assignments at a scope; typically granted via the built-in
-        Reader role. No Entra control depends on this collector yet -- AffectedControlIds is
-        therefore empty, not a placeholder oversight.
+        Reader role. AffectedControlIds was empty until 2026-08-08 -- a real, pre-existing
+        coverage-accuracy gap caught while wiring MAI-002/003: AGT-005/009/012/014 and MAI-003
+        all correlate against AzureRoleAssignment evidence directly (via properties.principalId,
+        not a relationship), but this collector never declared that dependency, so coverage.json
+        could report those controls' coverage as Complete even when this specific collector's
+        own evidence was Denied/Unavailable -- the same "missing evidence never becomes a clean
+        result" principle this project applies everywhere else, now applied here too.
     #>
     [CmdletBinding()]
     [OutputType([System.Collections.Specialized.OrderedDictionary])]
@@ -19,7 +24,7 @@ function Get-EntraPostureAzureRoleAssignmentCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'AzureRoleAssignments' `
         -RequiredPermissions @('Microsoft.Authorization/roleAssignments/read') `
         -EndpointsUsed @('/{scope}/providers/Microsoft.Authorization/roleAssignments') `
-        -AffectedControlIds @() `
+        -AffectedControlIds @('AGT-005', 'AGT-009', 'AGT-012', 'AGT-014', 'MAI-003') `
         -AffectedReportSections @('Azure RBAC')
 }
 

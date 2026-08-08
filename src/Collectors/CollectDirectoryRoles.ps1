@@ -25,7 +25,10 @@ function Get-EntraPostureDirectoryRoleCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'DirectoryRoleAssignments' `
         -RequiredPermissions @('RoleManagement.Read.Directory') `
         -EndpointsUsed @('/v1.0/directoryRoles', '/v1.0/directoryRoles/{roleId}/members') `
-        -AffectedControlIds @('PRIV-001', 'PIM-002', 'CA-001', 'CA-002', 'PIM-003', 'PIM-004', 'PIM-005', 'PIM-006', 'PIM-007', 'PIM-008', 'PIM-009', 'CAP-010') `
+        -AffectedControlIds @(
+            'PRIV-001', 'PIM-002', 'CA-001', 'CA-002', 'PIM-003', 'PIM-004', 'PIM-005', 'PIM-006', 'PIM-007', 'PIM-008', 'PIM-009', 'CAP-010',
+            'AGT-004', 'AGT-008', 'AGT-011', 'AGT-013', 'MAI-002'
+        ) `
         -AffectedReportSections @('Privileged Roles')
 }
 

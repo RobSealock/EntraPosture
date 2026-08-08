@@ -18,7 +18,7 @@ function Get-EntraPostureServicePrincipalCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'ServicePrincipals' `
         -RequiredPermissions @('Application.Read.All') `
         -EndpointsUsed @('/v1.0/servicePrincipals') `
-        -AffectedControlIds @() `
+        -AffectedControlIds @('MAI-002', 'MAI-003') `
         -AffectedReportSections @('Applications')
 }
 
