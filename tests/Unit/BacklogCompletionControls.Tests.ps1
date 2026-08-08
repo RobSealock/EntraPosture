@@ -23,7 +23,9 @@ BeforeAll {
         'src/Controls/EvaluatePimEntraRoleAdoption.ps1',
         'src/Controls/EvaluateEntraLeastPrivilege.ps1',
         'src/Controls/TierZeroAzureRoleList.ps1',
-        'src/Controls/EvaluateAzureLeastPrivilege.ps1'
+        'src/Controls/EvaluateAzureLeastPrivilege.ps1',
+        'src/Controls/EvaluateWeakProtectionEntraRole.ps1',
+        'src/Controls/EvaluateWeakProtectionAzureRole.ps1'
     )) {
         . (Join-Path $script:RepoRoot $relPath)
     }
@@ -118,6 +120,20 @@ BeforeAll {
             properties = [ordered]@{
                 roleDefinitionId = $RoleDefinitionId; principalId = $PrincipalId; principalType = $PrincipalType
                 scope = '/subscriptions/sub1'; createdOn = '2026-01-01T00:00:00Z'
+            }
+        }
+    }
+
+    function script:New-TestUserRegistrationDetailsEntity {
+        param([string]$Id, [object]$IsMfaRegistered = $null, [object]$IsPasswordlessCapable = $null)
+        return [ordered]@{
+            entityId = $Id; entityType = 'UserRegistrationDetails'; tenantScope = 't1'; displayName = $Id
+            collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false
+            properties = [ordered]@{
+                isAdmin = $null; isMfaRegistered = $IsMfaRegistered; isMfaCapable = $null
+                isPasswordlessCapable = $IsPasswordlessCapable
+                isSsprRegistered = $null; isSsprEnabled = $null; isSsprCapable = $null
+                methodsRegistered = @(); userType = 'member'
             }
         }
     }
@@ -342,5 +358,82 @@ Describe 'USR-009: Test-EntraPostureAzureLeastPrivilegeControl' {
         )
         $resultFew = Test-EntraPostureAzureLeastPrivilegeControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dirFew)
         $resultFew[0].Status | Should -Be 'Pass'
+    }
+}
+
+Describe 'USR-010: Test-EntraPostureWeakProtectionEntraRoleControl' {
+    It 'evaluates each direct and group-transitive Tier-0 Entra role holder against isPasswordlessCapable, failing on missing registration evidence too' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-roles.jsonl' -Records @(
+            [ordered]@{ entityId = 'ga-role'; entityType = 'DirectoryRole'; tenantScope = 't1'; displayName = 'Global Administrator'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; properties = [ordered]@{}; redacted = $false }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-users.jsonl' -Records @(
+            [ordered]@{ entityId = 'u1'; entityType = 'User'; tenantScope = 't1'; displayName = 'u1'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u2'; entityType = 'User'; tenantScope = 't1'; displayName = 'u2'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u3'; entityType = 'User'; tenantScope = 't1'; displayName = 'u3'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-role-assignments.jsonl' -Records @(
+            [ordered]@{ relationshipId = 'u1::ga-role::DirectoryRoleAssignment'; sourceEntityId = 'u1'; targetEntityId = 'ga-role'; relationshipType = 'DirectoryRoleAssignment'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false } },
+            [ordered]@{ relationshipId = 'u2::ga-role::DirectoryRoleAssignment'; sourceEntityId = 'u2'; targetEntityId = 'ga-role'; relationshipType = 'DirectoryRoleAssignment'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false } },
+            [ordered]@{ relationshipId = 'grp1::ga-role::DirectoryRoleAssignment'; sourceEntityId = 'grp1'; targetEntityId = 'ga-role'; relationshipType = 'DirectoryRoleAssignment'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-group-memberships.jsonl' -Records @(
+            [ordered]@{ relationshipId = 'u3::grp1::TransitiveMemberOf'; sourceEntityId = 'u3'; targetEntityId = 'grp1'; relationshipType = 'TransitiveMemberOf'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $true } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-user-registration-details.jsonl' -Records @(
+            (New-TestUserRegistrationDetailsEntity -Id 'u1' -IsMfaRegistered $true -IsPasswordlessCapable $true),
+            (New-TestUserRegistrationDetailsEntity -Id 'u2' -IsMfaRegistered $true -IsPasswordlessCapable $false)
+        )
+        $result = Test-EntraPostureWeakProtectionEntraRoleControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        ($result | Where-Object { $_.Scope -eq 'u1' }).Status | Should -Be 'Pass'
+        ($result | Where-Object { $_.Scope -eq 'u1' }).ReasonCode | Should -Be 'USR-010-PASSWORDLESS-CAPABLE'
+        ($result | Where-Object { $_.Scope -eq 'u2' }).Status | Should -Be 'Fail'
+        ($result | Where-Object { $_.Scope -eq 'u2' }).ReasonCode | Should -Be 'USR-010-NOT-PASSWORDLESS-CAPABLE'
+        ($result | Where-Object { $_.Scope -eq 'u3' }).Status | Should -Be 'Fail'
+        ($result | Where-Object { $_.Scope -eq 'u3' }).ReasonCode | Should -Be 'USR-010-NO-REGISTRATION-EVIDENCE'
+    }
+
+    It 'is NotApplicable when no enabled user holds a curated Tier-0 Entra ID role' {
+        $dir = New-TestSnapshotDir
+        $result = Test-EntraPostureWeakProtectionEntraRoleControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $result[0].Status | Should -Be 'NotApplicable'
+        $result[0].ReasonCode | Should -Be 'USR-010-NO-TIER-ZERO-USERS'
+    }
+}
+
+Describe 'USR-011: Test-EntraPostureWeakProtectionAzureRoleControl' {
+    It 'evaluates each direct and group-transitive Tier-0 Azure role holder against isPasswordlessCapable, failing on missing registration evidence too' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-users.jsonl' -Records @(
+            [ordered]@{ entityId = 'u1'; entityType = 'User'; tenantScope = 't1'; displayName = 'u1'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u2'; entityType = 'User'; tenantScope = 't1'; displayName = 'u2'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } },
+            [ordered]@{ entityId = 'u3'; entityType = 'User'; tenantScope = 't1'; displayName = 'u3'; collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false; properties = [ordered]@{ accountEnabled = $true } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/azure-role-assignments.jsonl' -Records @(
+            (New-TestAzureRoleAssignmentEntity -Id 'ra1' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635' -PrincipalId 'u1' -PrincipalType 'User'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra2' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635' -PrincipalId 'u2' -PrincipalType 'User'),
+            (New-TestAzureRoleAssignmentEntity -Id 'ra3' -RoleDefinitionId '/subscriptions/sub1/providers/Microsoft.Authorization/roleDefinitions/18d7d88d-d35e-4fb5-a5c3-7773c20a72d9' -PrincipalId 'grp1' -PrincipalType 'Group')
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-group-memberships.jsonl' -Records @(
+            [ordered]@{ relationshipId = 'u3::grp1::TransitiveMemberOf'; sourceEntityId = 'u3'; targetEntityId = 'grp1'; relationshipType = 'TransitiveMemberOf'; assignmentState = 'Active'; scope = 'directory'; provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }; validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $true } }
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-user-registration-details.jsonl' -Records @(
+            (New-TestUserRegistrationDetailsEntity -Id 'u1' -IsMfaRegistered $true -IsPasswordlessCapable $true),
+            (New-TestUserRegistrationDetailsEntity -Id 'u2' -IsMfaRegistered $true -IsPasswordlessCapable $false)
+        )
+        $result = Test-EntraPostureWeakProtectionAzureRoleControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        ($result | Where-Object { $_.Scope -eq 'u1' }).Status | Should -Be 'Pass'
+        ($result | Where-Object { $_.Scope -eq 'u1' }).ReasonCode | Should -Be 'USR-011-PASSWORDLESS-CAPABLE'
+        ($result | Where-Object { $_.Scope -eq 'u2' }).Status | Should -Be 'Fail'
+        ($result | Where-Object { $_.Scope -eq 'u2' }).ReasonCode | Should -Be 'USR-011-NOT-PASSWORDLESS-CAPABLE'
+        ($result | Where-Object { $_.Scope -eq 'u3' }).Status | Should -Be 'Fail'
+        ($result | Where-Object { $_.Scope -eq 'u3' }).ReasonCode | Should -Be 'USR-011-NO-REGISTRATION-EVIDENCE'
+    }
+
+    It 'is NotApplicable when no enabled user holds a curated Tier-0 Azure RBAC role' {
+        $dir = New-TestSnapshotDir
+        $result = Test-EntraPostureWeakProtectionAzureRoleControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $result[0].Status | Should -Be 'NotApplicable'
+        $result[0].ReasonCode | Should -Be 'USR-011-NO-TIER-ZERO-USERS'
     }
 }

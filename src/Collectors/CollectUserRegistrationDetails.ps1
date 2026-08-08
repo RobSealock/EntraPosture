@@ -24,7 +24,7 @@ function Get-EntraPostureUserRegistrationDetailsCollectorRequirement {
     return New-EntraPostureCollectorRequirement -CollectorName 'UserRegistrationDetails' `
         -RequiredPermissions @('AuditLog.Read.All') `
         -EndpointsUsed @('/v1.0/reports/authenticationMethods/userRegistrationDetails') `
-        -AffectedControlIds @('USR-012') `
+        -AffectedControlIds @('USR-012', 'USR-010', 'USR-011') `
         -AffectedReportSections @('Identity')
 }
 

@@ -257,6 +257,8 @@
         'src/Controls/EvaluateUserMfaRegistration.ps1'
         'src/Controls/TierZeroAzureRoleList.ps1'
         'src/Controls/EvaluateAzureLeastPrivilege.ps1'
+        'src/Controls/EvaluateWeakProtectionEntraRole.ps1'
+        'src/Controls/EvaluateWeakProtectionAzureRole.ps1'
         'src/Reporting/BuildAssessmentDocument.ps1'
         'src/Reporting/RedactionApplication.ps1'
         'src/Reporting/RenderHtmlReport.ps1'

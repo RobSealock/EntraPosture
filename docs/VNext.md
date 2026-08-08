@@ -157,11 +157,29 @@ deliberately instead of incidentally.
    `AGT-005`/`009`/`012`/`014`; only `AffectedControlIds` needed extending on the three
    collectors involved. 89 controls now ship (up from 88).
 
-   Eight canonical findings remain deferred, each still with a documented, specific reason:
-   `ENT-002`/`AGT-010`/`AGT-016` (beta-only `servicePrincipalSignInActivity`); `USR-010`/`011`
-   (no crisp Microsoft-documented definition of "weak" MFA protection yet -- next in the ranked
-   order); `CAP-011` (needs AU-scoped role assignment evidence); `USR-013` (no crisp "unnecessary
-   sync" threshold); `ENT-013` (no citable malicious-app signature source).
+   **Batch 14, same day** (`00-open-questions.md` §42): `USR-010`/`011` ("weak protection of
+   privileged users," Entra ID and Azure respectively). Rather than re-deriving EntraFalcon's own
+   unconfirmed "Is protected" check (`EF-USR-010` in section 3.2 -- its precise meaning couldn't
+   be confirmed from any available source), or self-curating a "phishing-resistant methods" string
+   list to match against `methodsRegistered` (Microsoft's own reference page documents that field
+   only as "such as mobilePhone, email, passKeyDeviceBound," no closed enum to build a citable
+   match against), "weak" was defined directly against a Microsoft-computed field already on
+   `UserRegistrationDetails`: `isPasswordlessCapable`, precisely documented as "registered a
+   passwordless strong authentication method (including FIDO2, Windows Hello for Business, and
+   Microsoft Authenticator (Passwordless)) that is allowed by the authentication methods policy."
+   One result per enabled Tier-0 role holder (Entra roles for USR-010 via USR-006/007's own
+   curated list; Azure roles for USR-011 via USR-009's own curated list, both direct-or-group-
+   transitive), Fail if not passwordless-capable -- including a Tier-0 user with no
+   UserRegistrationDetails record at all ("missing evidence never becomes a clean result"). Zero
+   new evidence collection -- reuses DirectoryRole/DirectoryRoleAssignment/User/TransitiveMemberOf
+   (USR-006/007), AzureRoleAssignment (USR-009), and UserRegistrationDetails (USR-012); only
+   `AffectedControlIds` needed extending on four existing collectors. 91 controls now ship (up
+   from 89).
+
+   Six canonical findings remain deferred, each still with a documented, specific reason:
+   `ENT-002`/`AGT-010`/`AGT-016` (beta-only `servicePrincipalSignInActivity`); `CAP-011` (needs
+   AU-scoped role assignment evidence -- next in the ranked order); `USR-013` (no crisp
+   "unnecessary sync" threshold); `ENT-013` (no citable malicious-app signature source).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

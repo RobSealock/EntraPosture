@@ -184,17 +184,14 @@ it is.
   no application-permission path at all -- so it's structurally `NotEvaluated` under
   `-AuthMode Certificate`, independent of granted permissions.
 - The EntraFalcon/Conditional Access Validator feature-parity matrix's own canonical registry
-  (`15-feature-parity-matrix.md` section 3.3, 82 findings) is now fully triaged: 74 built as
-  native controls, 8 deliberately excluded or deferred, each with a specific, documented reason
+  (`15-feature-parity-matrix.md` section 3.3, 82 findings) is now fully triaged: 76 built as
+  native controls, 6 deliberately excluded or deferred, each with a specific, documented reason
   rather than silently dropped:
   - `ENT-002`, `AGT-010`, `AGT-016` (inactive enterprise apps / agent identities / agent users) --
     all three need `servicePrincipalSignInActivity`, confirmed **beta-only** in Microsoft Graph
     with no v1.0/stable equivalent (the full v1.0 `servicePrincipal` property table has no
     sign-in-related field at all). This project has never called a Preview/beta endpoint from any
     of its ~30 collectors and does not start here.
-  - `USR-010`/`011` (weak protection of privileged users) -- no crisp Microsoft-documented
-    definition of "weak" MFA protection exists yet to build against (their sibling, `USR-012`,
-    "no MFA factors registered at all," is a crisp bulk-API check and is built).
   - `CAP-011` (CA policy includes roles with scoped assignments) -- needs administrative-unit-
     scoped role assignment evidence; this project's only role-assignment collector doesn't return
     AU-scoped assignments at all.
@@ -208,7 +205,7 @@ it is.
   Conditional Access (Entra ID P1+) -- confirmed to fail cleanly, not silently, against an
   unlicensed tenant.
 
-89 native controls are built and shipped, including `AR-002` (access review instance health),
+91 native controls are built and shipped, including `AR-002` (access review instance health),
 `AUTHCTX-001`/`002` (authentication context coverage and effectiveness), `CA-002` (full
 combinatorial Conditional Access gap analysis, generalizing beyond `CA-001`'s bounded 16-scenario
 grid), `EM-001`/`EM-002` (entitlement management), the full `PIM-002` through `PIM-009` set (plus
@@ -226,7 +223,10 @@ checks -- and the 109-row feature-parity-matrix backlog completion pass: passwor
 (`PAS-001`-`005`), tenant-wide user/group policy settings (`USR-002`/`003`/`004`/`006`/`009`,
 `GRP-002`/`003`/`004`), and bulk-registration-report MFA/least-privilege checks (`USR-012`, users
 with no MFA factors registered at all; `USR-009`, Azure RBAC least-privilege, its Entra ID
-sibling `USR-006`'s counterpart with an independently-curated Tier-0 Azure role list).
+sibling `USR-006`'s counterpart with an independently-curated Tier-0 Azure role list; `USR-010`/
+`011`, weak protection of Tier-0 Entra ID/Azure role holders specifically, defined citably via
+Microsoft's own `isPasswordlessCapable` field rather than a self-curated phishing-resistant
+method list).
 Conditional Access drift detection (`Compare-EntraPosture`), named-location resolution,
 device-filter rule-language evaluation, and
 workload-identity sign-in scenarios are also built.
