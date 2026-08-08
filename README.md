@@ -178,11 +178,17 @@ it is.
 
 - Azure RBAC is discovery-only unless `-ArmScope` is supplied; no control currently evaluates it
   directly.
-- `AR-002` (access review health beyond presence), `AUTHCTX-001`/`002` (authentication context
-  functional coverage), and the full combinatorial Conditional Access gap-analysis engine (as
-  opposed to `CA-001`'s bounded 16-scenario representative grid) are not yet built.
+- Agent identity (`AGT-*`) and PIM-for-Groups have design specs only -- see
+  [`docs/VNext.md`](docs/VNext.md) -- but no evaluator code yet.
 - Live What-If comparison (`scripts/Compare-WhatIf.ps1`) requires the tenant to be licensed for
   Conditional Access (Entra ID P1+) -- confirmed to fail cleanly, not silently, against an
   unlicensed tenant.
 
-See [`docs/VNext.md`](docs/VNext.md) for the complete list.
+24 native controls are built and shipped, including `AR-002` (access review instance health),
+`AUTHCTX-001`/`002` (authentication context coverage and effectiveness), `CA-002` (full
+combinatorial Conditional Access gap analysis, generalizing beyond `CA-001`'s bounded 16-scenario
+grid), `EM-001`/`EM-002` (entitlement management), and the full `PIM-002` through `PIM-009` set.
+Conditional Access drift detection (`Compare-EntraPosture`), named-location resolution, device-filter
+rule-language evaluation, and workload-identity sign-in scenarios are also built.
+
+See [`docs/VNext.md`](docs/VNext.md) for the complete build log and what's still deferred.
