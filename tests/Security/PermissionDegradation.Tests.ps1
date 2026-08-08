@@ -43,6 +43,9 @@ BeforeAll {
         'src/Normalization/NormalizeRoleManagementPolicyAssignment.ps1',
         'src/Normalization/NormalizeAccessPackage.ps1', 'src/Normalization/NormalizeAccessPackageAssignmentPolicy.ps1',
         'src/Normalization/NormalizeAccessPackageAssignment.ps1',
+        'src/Normalization/NormalizeOwnerOf.ps1', 'src/Normalization/NormalizeAgentIdentityBlueprint.ps1',
+        'src/Normalization/NormalizeAgentIdentityBlueprintPrincipal.ps1', 'src/Normalization/NormalizeAgentIdentity.ps1',
+        'src/Normalization/NormalizeAgentUser.ps1', 'src/Normalization/NormalizePimForGroups.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -54,9 +57,18 @@ BeforeAll {
         'src/Collectors/CollectAzureManagementGroups.ps1', 'src/Collectors/CollectAzureRoleDefinitions.ps1',
         'src/Collectors/CollectNamedLocations.ps1', 'src/Collectors/CollectAuthenticationStrengthPolicies.ps1',
         'src/Collectors/CollectRoleManagementPolicyAssignments.ps1', 'src/Collectors/CollectAccessPackages.ps1',
+        'src/Collectors/CollectAgentIdentityBlueprints.ps1', 'src/Collectors/CollectAgentIdentityBlueprintPrincipals.ps1',
+        'src/Collectors/CollectAgentIdentities.ps1', 'src/Collectors/CollectAgentUsers.ps1',
+        'src/Collectors/CollectPimForGroups.ps1',
         'src/Evidence/EvidenceFileRegistry.ps1', 'src/Evidence/EvidenceProvider.ps1',
         'src/Controls/ControlRegistry.ps1', 'src/Controls/EvaluateCrossTenantInboundTrust.ps1',
         'src/Controls/EvaluatePrivilegedRoleAssignment.ps1', 'src/Controls/DeviationApplication.ps1',
+        'src/Controls/AgentIdentityForeignDerivation.ps1', 'src/Controls/EvaluateAgentBlueprintClientSecrets.ps1',
+        'src/Controls/EvaluateForeignAgentIdentityEntraRole.ps1', 'src/Controls/EvaluateForeignAgentIdentityAzureRole.ps1',
+        'src/Controls/EvaluateInternalAgentIdentityEntraRole.ps1', 'src/Controls/EvaluateInternalAgentIdentityAzureRole.ps1',
+        'src/Controls/EvaluateForeignAgentUserEntraRole.ps1', 'src/Controls/EvaluateForeignAgentUserAzureRole.ps1',
+        'src/Controls/EvaluateAgentUserCapGroupOwnership.ps1', 'src/Controls/EvaluateAgentBlueprintOwnerTier.ps1',
+        'src/Controls/EvaluatePimForGroupsStandingMembership.ps1', 'src/Controls/EvaluatePimForGroupsPermanentAssignment.ps1',
         'src/Reporting/BuildAssessmentDocument.ps1', 'src/Reporting/RedactionApplication.ps1',
         'src/Reporting/RenderHtmlReport.ps1', 'src/Reporting/RenderCsvReport.ps1', 'src/Reporting/RenderConsoleReport.ps1',
         'src/Orchestration/BoundedParallelExecution.ps1', 'src/Orchestration/GraphCollectorDispatch.ps1',
@@ -209,8 +221,24 @@ Describe 'Global Reader-shaped identity: the two documented coverage gaps are ex
                 @($authStrengthCollector.rightsExpected) | Should -Contain 'Policy.Read.AuthenticationMethod'
                 @($authStrengthCollector.rightsPresentInToken) | Should -Not -Contain 'Policy.Read.AuthenticationMethod'
 
+                # VNext build order item 13 (agent identity / PIM-for-Groups): five further
+                # deliberate Global-Reader gaps, not oversights. AgentIdentityBlueprints/
+                # AgentIdentityBlueprintPrincipals/AgentIdentities: the live "List agentIdentity
+                # objects" Graph reference page (re-fetched 2026-08-07) names "Agent ID
+                # Administrator" as the least-privileged built-in role for a nonowner in
+                # delegated scenarios -- Global Reader is not listed. AgentUsers: this project's
+                # own collector additionally requires Directory.Read.All for its ownedObjects
+                # N+1 fetch (AGT-015), a scope not in this Global-Reader-shaped permission set.
+                # PimForGroups: PrivilegedEligibilitySchedule.Read.AzureADGroup/
+                # PrivilegedAssignmentSchedule.Read.AzureADGroup are permission scopes this
+                # curated Global-Reader-shaped token was never granted, independent of whether
+                # Global Reader's built-in role would be a sufficient *role* pairing for
+                # role-assignable groups specifically.
                 $armCollectorNames = @('AzureRoleAssignments', 'AzureSubscriptions', 'AzureManagementGroups', 'AzureRoleDefinitions')
-                $deniedByDesign = @('AccessReviewDefinitions', 'AuthenticationStrengthPolicies')
+                $deniedByDesign = @(
+                    'AccessReviewDefinitions', 'AuthenticationStrengthPolicies',
+                    'AgentIdentityBlueprints', 'AgentIdentityBlueprintPrincipals', 'AgentIdentities', 'AgentUsers', 'PimForGroups'
+                )
                 $otherGraphCollectors = $result.Coverage.collectors | Where-Object { $_.collectorName -notin ($deniedByDesign + $armCollectorNames) }
                 $notCollected = @($otherGraphCollectors | Where-Object { $_.evidenceStatus -ne 'Collected' })
                 $notCollected.Count | Should -Be 0 -Because "every other Graph collector should have everything it needs under a Global Reader-shaped token; unexpected gaps: $(($notCollected | ForEach-Object { $_.collectorName }) -join ', ')"

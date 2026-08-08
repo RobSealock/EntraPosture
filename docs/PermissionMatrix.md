@@ -28,6 +28,13 @@ operation exists anywhere in this codebase).
 | `Policy.Read.AuthenticationMethod` | AuthenticationStrengthPolicies | Conditional Access | *(feeds `Resolve-EntraPostureAuthenticationStrengthRequirement`, not a control directly -- see `00-open-questions.md` item 5)* |
 | `RoleManagementPolicy.Read.Directory` | RoleManagementPolicyAssignments | Privileged Roles, Conditional Access | AUTHCTX-001, AUTHCTX-002, PIM-003, PIM-004, PIM-005, PIM-006, PIM-007, PIM-008, PIM-009 |
 | `EntitlementManagement.Read.All` | AccessPackages | Entitlement Management | EM-001, EM-002 |
+| `AgentIdentityBlueprint.Read.All` | AgentIdentityBlueprints | Agent Identities | AGT-001, AGT-017 |
+| `AgentIdentityBlueprintPrincipal.Read.All` | AgentIdentityBlueprintPrincipals | Agent Identities | AGT-004, AGT-005, AGT-008, AGT-009, AGT-011, AGT-012, AGT-017 |
+| `AgentIdentity.Read.All` | AgentIdentities | Agent Identities | AGT-004, AGT-005, AGT-008, AGT-009 |
+| `User.ReadBasic.All` | AgentUsers | Agent Identities | AGT-011, AGT-012, AGT-015 |
+| `Directory.Read.All` | AgentUsers (ownedObjects N+1 only) | Agent Identities | AGT-015 |
+| `PrivilegedEligibilitySchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001 |
+| `PrivilegedAssignmentSchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001, PIMG-002 |
 
 **Live What-If comparison** (the ad hoc `scripts/Compare-WhatIf.ps1` utility, not part of the
 core assessment pipeline) additionally calls `POST /identity/conditionalAccess/evaluate`, whose
@@ -47,6 +54,21 @@ will show `AccessReviewDefinitions` as `Collected` (the definitions-list endpoin
 gate on this), but any *future* control checking privileged-role-scoped review coverage
 specifically would need an elevated role. Every other permission above is fully covered by Global
 Reader.
+
+**Agent identity listing requires the Agent ID Administrator role, not Global Reader, for a
+nonowner in delegated scenarios.** Confirmed directly against the live "List agentIdentity
+objects" Microsoft Graph reference page (re-fetched 2026-08-07): a Global-Reader-shaped identity
+that is not itself an owner of a given blueprint/agent identity will see `AgentIdentityBlueprints`,
+`AgentIdentityBlueprintPrincipals`, and `AgentIdentities` as `Denied` even with the correct app
+permission scopes granted, unless also assigned Agent ID Administrator (or is an owner). PIM-for-
+Groups (`PimForGroups`) is a separate gap of a different kind: `PrivilegedEligibilitySchedule.Read.
+AzureADGroup`/`PrivilegedAssignmentSchedule.Read.AzureADGroup` are permission scopes distinct from
+every scope Global Reader is typically granted by default, independent of whether Global Reader's
+built-in role would itself be sufficient once granted (for role-assignable groups specifically, it
+is). **`AgentUsers`'s ownedObjects half (AGT-015) has no application-permission path at all** --
+confirmed directly against the live "List ownedObjects" Graph reference page, which lists
+Application permission as "Not supported" for that specific relationship -- so AGT-015 evidence is
+structurally unavailable for any `CertificateAppOnly` run regardless of role or granted scopes.
 
 ## Azure Resource Manager permissions (optional -- only needed if you pass `-ArmScope`)
 

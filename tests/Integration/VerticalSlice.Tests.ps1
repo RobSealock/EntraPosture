@@ -42,6 +42,9 @@ BeforeAll {
         'src/Normalization/NormalizeRoleManagementPolicyAssignment.ps1',
         'src/Normalization/NormalizeAccessPackage.ps1', 'src/Normalization/NormalizeAccessPackageAssignmentPolicy.ps1',
         'src/Normalization/NormalizeAccessPackageAssignment.ps1',
+        'src/Normalization/NormalizeOwnerOf.ps1', 'src/Normalization/NormalizeAgentIdentityBlueprint.ps1',
+        'src/Normalization/NormalizeAgentIdentityBlueprintPrincipal.ps1', 'src/Normalization/NormalizeAgentIdentity.ps1',
+        'src/Normalization/NormalizeAgentUser.ps1', 'src/Normalization/NormalizePimForGroups.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -53,9 +56,18 @@ BeforeAll {
         'src/Collectors/CollectAzureManagementGroups.ps1', 'src/Collectors/CollectAzureRoleDefinitions.ps1',
         'src/Collectors/CollectNamedLocations.ps1', 'src/Collectors/CollectAuthenticationStrengthPolicies.ps1',
         'src/Collectors/CollectRoleManagementPolicyAssignments.ps1', 'src/Collectors/CollectAccessPackages.ps1',
+        'src/Collectors/CollectAgentIdentityBlueprints.ps1', 'src/Collectors/CollectAgentIdentityBlueprintPrincipals.ps1',
+        'src/Collectors/CollectAgentIdentities.ps1', 'src/Collectors/CollectAgentUsers.ps1',
+        'src/Collectors/CollectPimForGroups.ps1',
         'src/Evidence/EvidenceFileRegistry.ps1', 'src/Evidence/EvidenceProvider.ps1',
         'src/Controls/ControlRegistry.ps1', 'src/Controls/EvaluateCrossTenantInboundTrust.ps1',
         'src/Controls/EvaluatePrivilegedRoleAssignment.ps1', 'src/Controls/DeviationApplication.ps1',
+        'src/Controls/AgentIdentityForeignDerivation.ps1', 'src/Controls/EvaluateAgentBlueprintClientSecrets.ps1',
+        'src/Controls/EvaluateForeignAgentIdentityEntraRole.ps1', 'src/Controls/EvaluateForeignAgentIdentityAzureRole.ps1',
+        'src/Controls/EvaluateInternalAgentIdentityEntraRole.ps1', 'src/Controls/EvaluateInternalAgentIdentityAzureRole.ps1',
+        'src/Controls/EvaluateForeignAgentUserEntraRole.ps1', 'src/Controls/EvaluateForeignAgentUserAzureRole.ps1',
+        'src/Controls/EvaluateAgentUserCapGroupOwnership.ps1', 'src/Controls/EvaluateAgentBlueprintOwnerTier.ps1',
+        'src/Controls/EvaluatePimForGroupsStandingMembership.ps1', 'src/Controls/EvaluatePimForGroupsPermanentAssignment.ps1',
         'src/Reporting/BuildAssessmentDocument.ps1', 'src/Reporting/RedactionApplication.ps1',
         'src/ConditionalAccess/ScenarioModel.ps1', 'src/ConditionalAccess/GenerateCombinatorialScenarios.ps1',
         'src/Reporting/RenderHtmlReport.ps1', 'src/Reporting/RenderCsvReport.ps1', 'src/Reporting/RenderConsoleReport.ps1', 'src/Reporting/CompareAssessment.ps1',
@@ -172,6 +184,14 @@ BeforeAll {
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/identityGovernance/entitlementManagement/accessPackages'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/identityGovernance/entitlementManagement/accessPackages/{accessPackageId}'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/identityGovernance/entitlementManagement/assignments'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/applications/microsoft.graph.agentIdentityBlueprint'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/applications/{applicationId}/owners'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/servicePrincipals/microsoft.graph.agentIdentityBlueprintPrincipal'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/servicePrincipals/microsoft.graph.agentIdentity'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/users/microsoft.graph.agentUser'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/users/{userId}/ownedObjects'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/identityGovernance/privilegedAccess/group/eligibilityScheduleInstances'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/identityGovernance/privilegedAccess/group/assignmentScheduleInstances'; ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
         )
     }
 
@@ -186,7 +206,10 @@ BeforeAll {
             'RoleManagement.Read.Directory', 'Policy.Read.All', 'User.Read.All', 'Group.Read.All',
             'GroupMember.Read.All', 'Application.Read.All', 'AdministrativeUnit.Read.All',
             'AccessReview.Read.All', 'AuthenticationContext.Read.All', 'Organization.Read.All',
-            'Policy.Read.AuthenticationMethod', 'RoleManagementPolicy.Read.Directory', 'EntitlementManagement.Read.All'
+            'Policy.Read.AuthenticationMethod', 'RoleManagementPolicy.Read.Directory', 'EntitlementManagement.Read.All',
+            'AgentIdentityBlueprint.Read.All', 'AgentIdentityBlueprintPrincipal.Read.All', 'AgentIdentity.Read.All',
+            'User.ReadBasic.All', 'Directory.Read.All',
+            'PrivilegedEligibilitySchedule.Read.AzureADGroup', 'PrivilegedAssignmentSchedule.Read.AzureADGroup'
         )
     }
 
@@ -242,6 +265,10 @@ BeforeAll {
             '/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions' = '{"value":[]}'
             '/v1.0/identityGovernance/entitlementManagement/accessPackages' = '{"value":[]}'
             '/v1.0/identityGovernance/entitlementManagement/assignments' = '{"value":[]}'
+            '/v1.0/applications/microsoft.graph.agentIdentityBlueprint' = '{"value":[]}'
+            '/v1.0/servicePrincipals/microsoft.graph.agentIdentityBlueprintPrincipal' = '{"value":[]}'
+            '/v1.0/servicePrincipals/microsoft.graph.agentIdentity' = '{"value":[]}'
+            '/v1.0/users/microsoft.graph.agentUser' = '{"value":[]}'
         }
     }
 }

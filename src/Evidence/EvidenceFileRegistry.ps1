@@ -62,5 +62,11 @@ function Get-EntraPostureEvidenceFileRegistry {
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'AzureSubscription';                    RelativePath = 'evidence/azure-subscriptions.jsonl';                      ContractName = 'entity' }
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'AzureManagementGroup';                 RelativePath = 'evidence/azure-management-groups.jsonl';                  ContractName = 'entity' }
         [ordered]@{ RecordKind = 'Entity';       TypeName = 'AzureRoleDefinition';                  RelativePath = 'evidence/azure-role-definitions.jsonl';                   ContractName = 'entity' }
+        [ordered]@{ RecordKind = 'Entity';       TypeName = 'AgentIdentityBlueprint';               RelativePath = 'evidence/entra-agent-identity-blueprints.jsonl';          ContractName = 'entity' }
+        [ordered]@{ RecordKind = 'Entity';       TypeName = 'AgentIdentityBlueprintPrincipal';      RelativePath = 'evidence/entra-agent-identity-blueprint-principals.jsonl'; ContractName = 'entity' }
+        [ordered]@{ RecordKind = 'Entity';       TypeName = 'AgentIdentity';                        RelativePath = 'evidence/entra-agent-identities.jsonl';                   ContractName = 'entity' }
+        [ordered]@{ RecordKind = 'Entity';       TypeName = 'AgentUser';                            RelativePath = 'evidence/entra-agent-users.jsonl';                        ContractName = 'entity' }
+        [ordered]@{ RecordKind = 'Relationship'; TypeName = 'OwnerOf';                              RelativePath = 'evidence/entra-owners.jsonl';                             ContractName = 'relationship' }
+        [ordered]@{ RecordKind = 'Relationship'; TypeName = 'PimActive';                            RelativePath = 'evidence/entra-pim-active-assignments.jsonl';            ContractName = 'relationship' }
     )
 }

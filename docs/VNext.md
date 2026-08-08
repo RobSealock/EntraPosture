@@ -98,15 +98,17 @@ the unnumbered device-filter item) is now done or explicitly resolved to a desig
     reviewed against caOptics'/CA Insight's own published algorithm descriptions (design only, no
     source read) before being designed independently, built entirely on Phase 8's existing
     simulation engine -- no new evidence domain or collector. See `00-open-questions.md` item 30.
-13. **Agent identity (`AGT-*`) and PIM-for-Groups** -- **design specs done 2026-08-07, code not yet
-    written.** Re-verified live: both areas are now GA (v1.0) in Microsoft Graph, not BETA -- the
-    original blocker is stale. Given no existing control design (unlike `EM-001`/`EM-002`, which
-    only needed a scope-gate lifted), the project owner chose "design specs for all 17 `AGT-*`
-    findings first" over building a subset immediately. Full design (evidence, reason codes,
-    applicability, 12 of 17 findings fully designable now, 5 flagged as blocked on further
-    unresolved questions, plus two new `PIMG-001`/`PIMG-002` controls for PIM-for-Groups itself) is
-    in `15-feature-parity-matrix.md` section 11. See `00-open-questions.md` item 31. Next session
-    should build from that design, not re-research GA status.
+13. ~~**Agent identity (`AGT-*`) and PIM-for-Groups**~~ -- **done 2026-08-07**, see the "Native
+    controls not yet built" section below. All 9 of the design spec's designable `AGT-*` findings
+    (`AGT-001`, `004`, `005`, `008`, `009`, `011`, `012`, `015`, `017`) plus both `PIMG-001`/
+    `PIMG-002` are built. New `AgentIdentityBlueprint`/`AgentIdentityBlueprintPrincipal`/
+    `AgentIdentity`/`AgentUser` evidence domains, the `OwnerOf` and `PimActive` relationship types
+    (both reserved in the schema since Phase 3, first real use here), and a `PimForGroups`
+    collector reusing `PimEligible` with a Group target instead of minting a new type. The
+    remaining 8 `AGT-*` findings (`002`/`003`/`006`/`007`'s extensive-API-privilege architecture
+    fork, `010`/`016`'s inactive-threshold gap, `013`/`014`'s platform-reachability question) stay
+    unbuilt for the same unresolved-design reasons the spec itself named, not overlooked. See
+    `00-open-questions.md` item 34.
 
 **Not an effort question at all:** live What-If validation (`scripts/Compare-WhatIf.ps1`) is fully
 built and tested against a mock server; what's missing is a tenant licensed for Entra ID P1+, not
@@ -158,11 +160,16 @@ engineering time.
   (`00-open-questions.md` item 28), following the engineering plan §3's own template
   (reason/approver/impact/migration/tests/rollback), before any `EM-001`/`EM-002` code was
   written. See `00-open-questions.md` item 29 for the build itself.
-- **Agent identity (`AGT-*`, 17 findings) and PIM-for-Groups** -- tracked as pending triage since
-  Phase 0 on the belief both were still BETA; **re-verified live 2026-08-07 and confirmed GA**
-  (build order item 13). Full design spec now exists (`15-feature-parity-matrix.md` §11,
-  `00-open-questions.md` item 31) but no code -- the project owner chose to design all 17 findings
-  before building any of them.
+- ~~**Agent identity (`AGT-*`) and PIM-for-Groups**~~ -- **done 2026-08-07** (build order item
+  13). 9 of the design spec's 17 `AGT-*` findings (the ones the spec itself marked designable)
+  plus both `PIMG-001`/`PIMG-002` are built. See `00-open-questions.md` item 34 for the build
+  itself, including a real correction of the design spec's own speculation: `agentIdentity
+  .agentIdentityBlueprintId` turned out to hold the blueprint's `appId`, not either object's own
+  `id` (confirmed live against the `agentIdentity` resource page before writing the correlation
+  logic), and PIMG-002 reads a flat `endDateTime` field directly rather than the nested
+  `scheduleInfo.expiration.type` the spec guessed at before that endpoint was actually checked.
+  The remaining 8 findings stay unbuilt for the same reasons `15-feature-parity-matrix.md` §11's
+  own "Not yet designable" section already named.
 - **The remaining rows** of the 220-row feature-parity matrix beyond what was actually built
   (`15-feature-parity-matrix.md` catalogs every one, with disposition) -- each would need the
   same schema-valid definition + tested evaluator + honest evidence-availability check every

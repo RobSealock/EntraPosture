@@ -24,7 +24,8 @@
         "CrossTenantAccessPolicyPartner", "AuthorizationPolicy",
         "AdminConsentRequestPolicy", "Organization", "AzureManagementGroup",
         "SecurityDefaultsPolicy", "NamedLocation", "AuthenticationStrengthPolicy",
-        "RoleManagementPolicyAssignment"
+        "RoleManagementPolicyAssignment",
+        "AgentIdentityBlueprint", "AgentIdentityBlueprintPrincipal", "AgentIdentity", "AgentUser"
       ]
     },
     "tenantScope": {

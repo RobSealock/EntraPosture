@@ -37,6 +37,11 @@ function Get-EntraPostureAllCollectorRequirement {
         Get-EntraPostureAzureManagementGroupCollectorRequirement
         Get-EntraPostureAzureRoleDefinitionCollectorRequirement
         Get-EntraPostureAccessPackageCollectorRequirement
+        Get-EntraPostureAgentIdentityBlueprintCollectorRequirement
+        Get-EntraPostureAgentIdentityBlueprintPrincipalCollectorRequirement
+        Get-EntraPostureAgentIdentityCollectorRequirement
+        Get-EntraPostureAgentUserCollectorRequirement
+        Get-EntraPosturePimForGroupsCollectorRequirement
     )
     return ,@($requirements)
 }

@@ -114,6 +114,21 @@ function Invoke-EntraPostureGraphCollectorDispatch {
         'AccessPackages' {
             Invoke-EntraPostureAccessPackageCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
         }
+        'AgentIdentityBlueprints' {
+            Invoke-EntraPostureAgentIdentityBlueprintCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
+        'AgentIdentityBlueprintPrincipals' {
+            Invoke-EntraPostureAgentIdentityBlueprintPrincipalCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
+        'AgentIdentities' {
+            Invoke-EntraPostureAgentIdentityCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
+        'AgentUsers' {
+            Invoke-EntraPostureAgentUserCollector -AccessToken $AccessToken -TenantScope $TenantScope -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
+        'PimForGroups' {
+            Invoke-EntraPosturePimForGroupsCollector -AccessToken $AccessToken -RequestHostOverride $RequestHostOverride @sendCommonParams
+        }
         default { $null }
     }
     return $result
