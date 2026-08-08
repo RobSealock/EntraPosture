@@ -82,7 +82,24 @@ deliberately instead of incidentally.
    last-successful-sign-in/account-creation-date two-signal shape independently re-derived from
    EntraFalcon's own publicly visible source, then confirmed against live Microsoft Graph
    documentation. 65 controls now ship. `USR-010`/`011` remain deferred (too large in scope, no
-   crisp "weak" definition yet). ~118 rows remain (of the original ~150 estimate).
+   crisp "weak" definition yet). **Batch 9, same day** (`00-open-questions.md` §40): the
+   "Extensive API Privileges" architecture fork (`15-feature-parity-matrix.md` section 11 --
+   whether the finding belongs to agent identities specifically or is a general
+   service-principal-permission-risk control) was resolved by explicit project owner decision as
+   the **general** form. New `ServicePrincipalApiPermissions` evidence domain
+   (`CollectServicePrincipalApiPermissions.ps1`, `appRoleAssignments` + `oauth2PermissionGrants`
+   N+1, Graph-scoped only, a new `Directory.Read.All` permission for the delegated half) and an
+   independently-curated "Dangerous" permission-risk list (`ApiPermissionRiskList.ps1`, cross-
+   referenced against a comparable community tool's own list as a starting point, 4/4 spot-checked
+   GUIDs confirmed against live Microsoft Graph documentation). One shared evaluator
+   (`Get-EntraPostureExtensiveApiPrivilegeControlResult`) is thinly wrapped by all nine resulting
+   controls: `ENT-004`/`005`/`009`/`010` (enterprise applications), `AGT-002`/`003`/`006`/`007`
+   (agent identities), `MAI-001` (managed identities). 74 controls now ship (up from 65). A third
+   instance of this project's array-collapse-at-a-return-boundary bug class was found and fixed in
+   the process -- see §40 for the repro (a bare `Get-EntraPosture*` function call used directly as
+   a `foreach`/`@()` source, rather than assigned to a variable first, silently collapses a
+   multi-record result down to one phantom element). ~109 rows remain (of the original ~150
+   estimate).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

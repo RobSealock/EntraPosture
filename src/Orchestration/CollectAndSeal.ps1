@@ -44,6 +44,7 @@ function Get-EntraPostureAllCollectorRequirement {
         Get-EntraPosturePimForGroupsCollectorRequirement
         Get-EntraPostureGroupSettingsCollectorRequirement
         Get-EntraPostureUserSignInActivityCollectorRequirement
+        Get-EntraPostureServicePrincipalApiPermissionsCollectorRequirement
     )
     return ,@($requirements)
 }

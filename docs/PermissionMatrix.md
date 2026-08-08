@@ -20,7 +20,7 @@ operation exists anywhere in this codebase).
 | `User.Read.All` | Users | Identity | *(breadth collector -- no control depends on it directly yet)* |
 | `Group.Read.All` | Groups | Identity | GRP-005 |
 | `GroupMember.Read.All` | Groups | Identity | GRP-005 |
-| `Application.Read.All` | Applications, ServicePrincipals | Applications | *(breadth collector -- no control depends on it directly yet)* |
+| `Application.Read.All` | Applications, ServicePrincipals, ServicePrincipalApiPermissions | Applications | APP-001/002/003, ENT-001/003/004/006/007/008/009/010/011/012, AGT-002/003/006/007, MAI-001/002/003 |
 | `AdministrativeUnit.Read.All` | AdministrativeUnits | Identity | *(breadth collector -- no control depends on it directly yet)* |
 | `AccessReview.Read.All` | AccessReviewDefinitions | Access Reviews | AR-001, AR-002 |
 | `AuthenticationContext.Read.All` | AuthenticationContexts | Conditional Access | AUTHCTX-001/002 not yet built (see `00-open-questions.md`) |
@@ -32,7 +32,7 @@ operation exists anywhere in this codebase).
 | `AgentIdentityBlueprintPrincipal.Read.All` | AgentIdentityBlueprintPrincipals | Agent Identities | AGT-004, AGT-005, AGT-008, AGT-009, AGT-011, AGT-012, AGT-017 |
 | `AgentIdentity.Read.All` | AgentIdentities | Agent Identities | AGT-004, AGT-005, AGT-008, AGT-009 |
 | `User.ReadBasic.All` | AgentUsers | Agent Identities | AGT-011, AGT-012, AGT-015 |
-| `Directory.Read.All` | AgentUsers (ownedObjects N+1 only) | Agent Identities | AGT-015 |
+| `Directory.Read.All` | AgentUsers (ownedObjects N+1 only), ServicePrincipalApiPermissions (oauth2PermissionGrants half only) | Agent Identities, Applications | AGT-015; ENT-005/010, AGT-003/007 |
 | `PrivilegedEligibilitySchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001 |
 | `PrivilegedAssignmentSchedule.Read.AzureADGroup` | PimForGroups | PIM | PIMG-001, PIMG-002 |
 | `GroupSettings.Read.All` | GroupSettings | External Collaboration | COL-003 |
@@ -76,6 +76,14 @@ with `AuditLog.Read.All` granted, the `signInActivity` property requires the ten
 licensed for Microsoft Entra ID P1 or P2 -- an unlicensed tenant will see this collector fail at
 collection time (a real API error despite adequate permission, per this project's own
 partial-evidence handling), surfacing as `USR-005-EVIDENCE-NOT-COLLECTED`, never a silent Pass.
+**`ServicePrincipalApiPermissions` declares both `Application.Read.All` and `Directory.Read.All`
+as required** even though only its delegated-permission half (`oauth2PermissionGrants`) actually
+needs `Directory.Read.All` -- the application-permission half (`appRoleAssignments`) is fully
+satisfied by `Application.Read.All` alone. Granting only one of the two still leaves this whole
+evidence domain short of its own declared requirement (`evidenceStatus` `Incomplete`, not
+`Collected`), so every control depending on it -- `ENT-004`/`005`/`009`/`010`,
+`AGT-002`/`003`/`006`/`007`, `MAI-001` -- is affected, not just the delegated-permission half's
+own controls. Grant both scopes together to collect this domain fully.
 
 ## Azure Resource Manager permissions (optional -- only needed if you pass `-ArmScope`)
 
