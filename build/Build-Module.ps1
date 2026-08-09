@@ -248,7 +248,7 @@ Write-Host "[+] Wrote $psm1Path"
 Write-Host "[+] Wrote $psd1Path"
 
 # ---------------------------------------------------------------------------
-# 7b. Copy non-source asset directories (schemas/, controls/) alongside the built module.
+# 7b. Copy non-source asset directories (schemas/, controls/, data/) alongside the built module.
 #     Get-EntraPostureSchemaPath and the control-registry loader both need to resolve these
 #     at runtime, and $PSScriptRoot for code running from the single concatenated .psm1 is
 #     OutputPath itself -- a fundamentally different relative depth than $PSScriptRoot for the
@@ -275,7 +275,7 @@ Write-Host "[+] Wrote $psd1Path"
 #     also correctly drops any file removed from source (e.g. a renamed/retired control) instead
 #     of leaving it behind forever.
 # ---------------------------------------------------------------------------
-foreach ($assetDir in @('schemas', 'controls')) {
+foreach ($assetDir in @('schemas', 'controls', 'data')) {
     $sourceDir = Join-Path $RepoRoot $assetDir
     $destDir = Join-Path $OutputPath $assetDir
     if (Test-Path -LiteralPath $sourceDir) {
@@ -286,6 +286,10 @@ foreach ($assetDir in @('schemas', 'controls')) {
         Write-Host "[+] Copied $assetDir/ into build output."
     }
 }
+# data/ is deliberately NOT part of the controls/ content-hash verification below -- unlike
+# controls/ (an immutable release artifact, verified to match source exactly), data/ ships as a
+# working seed that Update-EntraPostureKnownAbusedAppList -Save is expected to overwrite at
+# runtime; this copy just needs to get the initial seed into dist/, not stay byte-identical to it.
 
 # Verify the copy actually landed where runtime resolution reads it from (top-level of
 # dest, non-recursive -- the same shape Get-EntraPostureControlDefinitionRoot's built-tree

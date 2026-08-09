@@ -32,8 +32,21 @@
   call happens, confirmed by tests asserting zero requests reach the mock server for a
   non-allowlisted path.
 - **No telemetry, no phone-home version checks, no runtime-downloaded code, no automatic
-  updates.** Every network call this tool makes is either a Microsoft Graph/ARM API call you
-  explicitly triggered, or the OAuth token endpoint during authentication. Nothing else.
+  updates.** Every network call the **core assessment** (`Invoke-EntraPosture`/
+  `New-EntraPostureSnapshot`/`Test-EntraPostureAccess`/`Invoke-EntraPostureEvaluation`/
+  `New-EntraPostureReport`/`Compare-EntraPosture`/`Test-EntraPostureBundle`) makes is either a
+  Microsoft Graph/ARM API call you explicitly triggered, or the OAuth token endpoint during
+  authentication. Nothing else, and none of those commands ever call the one exception below.
+  **The one deliberate exception**: `Update-EntraPostureKnownAbusedAppList` -- a separate,
+  explicitly-invoked utility that manages a local vendored copy of the `huntresslabs/rogueapps`
+  dataset (groundwork for a future `ENT-013` control). It talks to `api.github.com` and
+  `raw.githubusercontent.com`, anonymously, only when you run it directly -- never as a side
+  effect of any other command, and never through the `EndpointAllowlist.ps1`/
+  `Test-EntraPosturePreflight` machinery every Graph/ARM call goes through (a structurally
+  different kind of call: no OAuth token, a different host entirely, kept in one isolated
+  `src/Public/` file so the exception is obvious to a reader rather than blurred into the tenant
+  evidence transport layer). See the README's "Reference data refresh" section for usage and its
+  own mandatory disclaimer.
 - **Retries use bounded exponential backoff with full jitter**, honoring a server's `Retry-After`
   header exactly when present -- confirmed against real 429 responses in a mock server, with a
   loop-detection backstop against a paginating API that returns a repeating `@odata.nextLink`.

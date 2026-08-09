@@ -139,6 +139,39 @@ rather than something to retype each time:
 | `Connect-Tenant.ps1` | Quick access-check or full run against a real tenant, delegated or certificate auth, prints per-collector status. |
 | `Compare-WhatIf.ps1` | Runs this tool's offline CA simulation and Microsoft's real live What-If API against the same scenario, side by side. |
 
+## Reference data refresh
+
+`Update-EntraPostureKnownAbusedAppList` manages a local vendored copy of the
+[`huntresslabs/rogueapps`](https://github.com/huntresslabs/rogueapps) dataset -- applications
+observed being abused in real-world compromises, groundwork for a future `ENT-013` control (not
+yet built as a control itself; this cmdlet and its data are the first half). It is the **one**
+deliberate exception to this tool's own "no runtime-downloaded data, every network call is a
+Graph/ARM call you explicitly triggered" guarantee (see
+[`docs/SecurityAndStorage.md`](docs/SecurityAndStorage.md)) -- and it is an exception you must
+explicitly invoke; the core assessment (`Invoke-EntraPosture`/`New-EntraPostureSnapshot`) never
+calls it and never reaches `github.com` on its own.
+
+```powershell
+# Check whether a newer version exists and print the manual download URL. Touches no files.
+Update-EntraPostureKnownAbusedAppList
+
+# Fetch and preview what would change (added/removed apps) without saving anything.
+Update-EntraPostureKnownAbusedAppList -Fetch
+
+# Fetch and save the vendored copy locally (gated by -Confirm/-WhatIf, like any
+# SupportsShouldProcess command).
+Update-EntraPostureKnownAbusedAppList -Fetch -Save
+
+# Fully manual: download data/rogueapps.toml yourself from the URL this cmdlet prints, then
+# point at wherever you saved it -- this cmdlet never has to touch the network at all.
+Update-EntraPostureKnownAbusedAppList -Path C:\path\to\rogueapps.toml
+```
+
+**Disclaimer, printed on every invocation and recorded in the saved sidecar metadata**: this
+dataset documents applications *observed in adversarial contexts*, not a confirmed-malicious
+list -- presence does not confirm malicious intent. Any future finding built from it must be
+reviewed manually before action is taken.
+
 ## Exit codes
 
 | Code | Meaning |
@@ -176,8 +209,10 @@ it is.
 
 ## Known limitations as of this release
 
-- Azure RBAC is discovery-only unless `-ArmScope` is supplied; no control currently evaluates it
-  directly.
+- Azure RBAC evidence is only collected when `-ArmScope` is supplied; when it is, 10 controls
+  evaluate it directly (`ENT-007`/`012`, `MAI-003`, `AGT-005`/`009`/`012`/`014`, `USR-008`/`009`/
+  `011`) -- a Graph-only run with no `-ArmScope` simply leaves those controls `NotEvaluated`
+  (missing evidence), not silently passed.
 - 2 of 17 designed agent-identity findings remain unbuilt: `AGT-010`/`016` (see the
   beta-API-only note below).
 - `AGT-015`'s evidence collection is delegated-only -- Microsoft's own `ownedObjects` endpoint has

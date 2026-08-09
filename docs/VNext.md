@@ -205,6 +205,29 @@ deliberately instead of incidentally.
    `USR-010`, `USR-011`, `CAP-011`); the remaining 5 stay deferred for the reasons stated above,
    `ENT-002`/`AGT-010`/`AGT-016` being the genuine blocker this ranked-order pass was always
    expected to stop at -- see `00-open-questions.md` §44 for the full close-out.
+
+   **`ENT-013` groundwork, same day** (`00-open-questions.md` §45): the "no citable malicious-app
+   signature source" reason `ENT-013` was deferred for no longer fully holds -- the project owner
+   surfaced `huntresslabs/rogueapps` (MPL-2.0, actively maintained), a structured, GUID-keyed
+   dataset of applications observed being abused in real compromises. Built the groundwork this
+   session: a bounded TOML-subset parser (`ConvertFrom-EntraPostureRogueAppsToml`, deliberately
+   NOT a general TOML implementation -- see its own header comment for the exact subset it
+   accepts and why it throws rather than guesses on anything outside that subset) and a new
+   public cmdlet, `Update-EntraPostureKnownAbusedAppList`, that manages a local vendored copy
+   under `data/` with inspect-before-save (`-Fetch` previews an add/remove diff without writing)
+   and manual-copy (`-Path`) modes, plus a staleness check against GitHub's own commit history for
+   that file. This is the one deliberate exception to this project's "no runtime-downloaded data"
+   guarantee (docs/SecurityAndStorage.md now documents it explicitly) -- and specifically an
+   exception you must invoke yourself; the core assessment pipeline never calls it. **`ENT-013`
+   itself is still not a built control** -- this pass only ships the data-management
+   infrastructure, deliberately kept separate from the harder architectural question of how a
+   control reads it: reading the local file directly at evaluation time would bypass this
+   project's evidence-immutability model (a sealed snapshot's own control results could then
+   change depending on when it's re-evaluated), so the correct shape is a local-file "collector"
+   that runs at collection time and bakes a `KnownAbusedApp` entity into the snapshot like every
+   other evidence domain -- a real orchestration-layer addition (today's collector model assumes
+   every collector is either a Graph or ARM network call) deserving its own dedicated pass, not
+   one to rush into the same session. 92 controls (unchanged).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

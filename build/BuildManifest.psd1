@@ -62,6 +62,8 @@
         'src/Common/AssertNotImplemented.ps1'
         'src/Common/CanonicalJson.ps1'
         'src/Common/ToolVersionInfo.ps1'
+        'src/Common/ParseRogueAppsToml.ps1'
+        'src/Common/KnownAbusedAppListPath.ps1'
         'src/Logging/WriteLog.ps1'
         'src/Validation/StrictJson.ps1'
         'src/Validation/TestSchema.ps1'
@@ -278,6 +280,7 @@
         'src/Orchestration/DetermineExitCode.ps1'
         'src/Public/Invoke-EntraPosture.ps1'
         'src/Public/Test-EntraPostureAccess.ps1'
+        'src/Public/Update-EntraPostureKnownAbusedAppList.ps1'
         'src/Public/New-EntraPostureSnapshot.ps1'
         'src/Public/Invoke-EntraPostureEvaluation.ps1'
         'src/Public/New-EntraPostureReport.ps1'
@@ -299,5 +302,6 @@
         'Compare-EntraPosture'
         'Get-EntraPostureControl'
         'Test-EntraPostureBundle'
+        'Update-EntraPostureKnownAbusedAppList'
     )
 }
