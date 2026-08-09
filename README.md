@@ -143,13 +143,16 @@ rather than something to retype each time:
 
 `Update-EntraPostureKnownAbusedAppList` manages a local vendored copy of the
 [`huntresslabs/rogueapps`](https://github.com/huntresslabs/rogueapps) dataset -- applications
-observed being abused in real-world compromises, groundwork for a future `ENT-013` control (not
-yet built as a control itself; this cmdlet and its data are the first half). It is the **one**
-deliberate exception to this tool's own "no runtime-downloaded data, every network call is a
-Graph/ARM call you explicitly triggered" guarantee (see
+observed being abused in real-world compromises, `ENT-013`'s own reference data. It is the
+**one** deliberate exception to this tool's own "no runtime-downloaded data, every network call
+is a Graph/ARM call you explicitly triggered" guarantee (see
 [`docs/SecurityAndStorage.md`](docs/SecurityAndStorage.md)) -- and it is an exception you must
 explicitly invoke; the core assessment (`Invoke-EntraPosture`/`New-EntraPostureSnapshot`) never
-calls it and never reaches `github.com` on its own.
+calls it and never reaches `github.com` on its own. `ENT-013` itself always evaluates (it never
+goes `NotEvaluated` just because you haven't run this cmdlet yet) -- pass `-KnownAbusedAppListPath`
+to `New-EntraPostureSnapshot`/`Invoke-EntraPosture` to point at a refreshed copy, or rely on the
+vendored seed this module ships with by default; with no data available at all, `ENT-013` reports
+`NotApplicable` ("nothing was actually checked"), never a silent Pass.
 
 ```powershell
 # Check whether a newer version exists and print the manual download URL. Touches no files.
@@ -219,8 +222,8 @@ it is.
   no application-permission path at all -- so it's structurally `NotEvaluated` under
   `-AuthMode Certificate`, independent of granted permissions.
 - The EntraFalcon/Conditional Access Validator feature-parity matrix's own canonical registry
-  (`15-feature-parity-matrix.md` section 3.3, 82 findings) is now fully triaged: 77 built as
-  native controls, 5 deliberately excluded or deferred, each with a specific, documented reason
+  (`15-feature-parity-matrix.md` section 3.3, 82 findings) is now fully triaged: 78 built as
+  native controls, 4 deliberately excluded or deferred, each with a specific, documented reason
   rather than silently dropped:
   - `ENT-002`, `AGT-010`, `AGT-016` (inactive enterprise apps / agent identities / agent users) --
     all three need `servicePrincipalSignInActivity`, confirmed **beta-only** in Microsoft Graph
@@ -229,15 +232,12 @@ it is.
     of its ~30 collectors and does not start here.
   - `USR-013` (unnecessary on-premises sync) -- no crisp Microsoft-documented threshold for
     "unnecessary" exists to build against.
-  - `ENT-013` (known malicious enterprise applications) -- the matrix's own disposition already
-    flags this as pending triage, dependent on a maintained malicious-app signature source this
-    project has no citable provenance for.
   See [`docs/VNext.md`](docs/VNext.md) for the full triage record.
 - Live What-If comparison (`scripts/Compare-WhatIf.ps1`) requires the tenant to be licensed for
   Conditional Access (Entra ID P1+) -- confirmed to fail cleanly, not silently, against an
   unlicensed tenant.
 
-92 native controls are built and shipped, including `AR-002` (access review instance health),
+93 native controls are built and shipped, including `AR-002` (access review instance health),
 `AUTHCTX-001`/`002` (authentication context coverage and effectiveness), `CA-002` (full
 combinatorial Conditional Access gap analysis, generalizing beyond `CA-001`'s bounded 16-scenario
 grid), `EM-001`/`EM-002` (entitlement management), the full `PIM-002` through `PIM-009` set (plus
@@ -260,7 +260,8 @@ with no MFA factors registered at all; `USR-009`, Azure RBAC least-privilege, it
 sibling `USR-006`'s counterpart with an independently-curated Tier-0 Azure role list; `USR-010`/
 `011`, weak protection of Tier-0 Entra ID/Azure role holders specifically, defined citably via
 Microsoft's own `isPasswordlessCapable` field rather than a self-curated phishing-resistant
-method list).
+method list; `ENT-013`, known abused enterprise applications, matched against a locally vendored,
+operator-refreshed community dataset -- see "Reference data refresh" above).
 Conditional Access drift detection (`Compare-EntraPosture`), named-location resolution,
 device-filter rule-language evaluation, and
 workload-identity sign-in scenarios are also built.

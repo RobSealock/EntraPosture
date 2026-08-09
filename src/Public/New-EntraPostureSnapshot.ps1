@@ -53,6 +53,18 @@ function New-EntraPostureSnapshot {
         .PARAMETER ArmRequestHostOverride
         Test-only, forwarded to Invoke-EntraPostureCollectAndSeal.
 
+        .PARAMETER KnownAbusedAppListPath
+        Optional local file path to a vendored known-abused-app dataset (ENT-013 -- see
+        Update-EntraPostureKnownAbusedAppList). Unlike every other parameter here, an omitted
+        value is NOT passed through to Invoke-EntraPostureCollectAndSeal as-is -- this command
+        resolves it to Get-EntraPostureKnownAbusedAppListPath's own default location first, so a
+        normal run picks up whatever was last saved there with zero extra configuration.
+        Invoke-EntraPostureCollectAndSeal itself applies no such default (see that function's own
+        parameter docs for why) -- this resolution happens here, once, specifically so direct
+        callers of the lower-level function (every test in this project included) stay
+        deterministic. Pass an explicit path to point elsewhere, or a path you know doesn't
+        exist to skip this domain entirely for this run.
+
         .OUTPUTS
         Ordered dictionary: SnapshotPath, Manifest, Coverage.
     #>
@@ -102,7 +114,11 @@ function New-EntraPostureSnapshot {
         [string]$GraphRequestHostOverride = 'graph.microsoft.com',
 
         [Parameter()]
-        [string]$ArmRequestHostOverride = 'management.azure.com'
+        [string]$ArmRequestHostOverride = 'management.azure.com',
+
+        [Parameter()]
+        [AllowNull()]
+        [string]$KnownAbusedAppListPath
     )
 
     if (-not $AccessTokenOverride -and $AuthMode -eq 'Certificate' -and -not $Certificate) {
@@ -143,6 +159,8 @@ function New-EntraPostureSnapshot {
     $snapshotId = New-EntraPostureCorrelationId
     $resolvedAuthMode = if ($AuthMode -eq 'Delegated') { 'DelegatedInteractive' } else { 'CertificateAppOnly' }
 
+    $resolvedKnownAbusedAppListPath = if ($KnownAbusedAppListPath) { $KnownAbusedAppListPath } else { (Get-EntraPostureKnownAbusedAppListPath).TomlPath }
+
     $collectParams = @{
         RunRoot                 = $RunRoot
         SnapshotId              = $snapshotId
@@ -153,6 +171,7 @@ function New-EntraPostureSnapshot {
         GraphRequestHostOverride = $GraphRequestHostOverride
         ArmRequestHostOverride   = $ArmRequestHostOverride
         SchemeOverride           = $SchemeOverride
+        KnownAbusedAppListPath   = $resolvedKnownAbusedAppListPath
     }
     if ($AllowlistOverride) { $collectParams['AllowlistOverride'] = $AllowlistOverride }
     if ($armToken) {

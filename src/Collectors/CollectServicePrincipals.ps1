@@ -25,7 +25,7 @@ function Get-EntraPostureServicePrincipalCollectorRequirement {
             '/v1.0/servicePrincipals/{spId}/owners',
             '/v1.0/servicePrincipals/{spId}/ownedObjects'
         ) `
-        -AffectedControlIds @('MAI-002', 'MAI-003', 'ENT-006', 'ENT-007', 'ENT-011', 'ENT-012', 'ENT-001', 'ENT-003', 'ENT-008') `
+        -AffectedControlIds @('MAI-002', 'MAI-003', 'ENT-006', 'ENT-007', 'ENT-011', 'ENT-012', 'ENT-001', 'ENT-003', 'ENT-008', 'ENT-013') `
         -AffectedReportSections @('Applications')
 }
 

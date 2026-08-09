@@ -119,6 +119,29 @@ function Invoke-EntraPostureCollectAndSeal {
         never pass any of these -- see Send-EntraPostureRequest's own parameter docs for why
         they exist.
 
+        .PARAMETER KnownAbusedAppListPath
+        Optional local file path to a vendored rogueapps.toml-shaped file (ENT-013's own
+        reference data -- see Update-EntraPostureKnownAbusedAppList). This function itself
+        applies NO default resolution -- $null/omitted here means "nothing to check," not "look
+        in the usual place"; only New-EntraPostureSnapshot resolves a caller-omitted value via
+        Get-EntraPostureKnownAbusedAppListPath before calling down to this function, so a direct
+        caller of this lower-level function (every test in this project included) gets
+        deterministic, no-network, no-file-I/O-for-this-domain behavior unless it explicitly
+        opts in. When the effective path (given or previously resolved) doesn't point at an
+        existing, parseable file, this domain contributes NOTHING to coverage.collectors at
+        all -- not even 'Unavailable' -- specifically so an assessment run that never configured
+        this entirely optional domain is never marked Partial because of it (ADR-015's partial-
+        evidence handling exists for real permission/API gaps in evidence a user is expected to
+        have configured; "never opted into an optional reference dataset" is not that). A file
+        that DOES exist but fails to parse is different -- that's a real, actionable problem
+        (evidenceStatus 'Malformed'), and does contribute to Partial like any other collection
+        failure. ENT-013 itself is gated on CollectServicePrincipals.ps1's own AffectedControlIds
+        alone (not this domain's) specifically so it's never NotEvaluated just because this
+        optional domain was never configured -- see ENT-013.psd1's own applicability field and
+        EvaluateKnownAbusedApp.ps1's own DESCRIPTION for the full reasoning. A 'Malformed'
+        coverage record here DOES also name ENT-013 in its own affectedControlIds, so a
+        configured-but-broken list still correctly drives ENT-013 to NotEvaluated too.
+
         .OUTPUTS
         Ordered dictionary: SnapshotPath (sealed bundle root), Manifest, Coverage.
     #>
@@ -173,7 +196,11 @@ function Invoke-EntraPostureCollectAndSeal {
         [string]$GraphRequestHostOverride = 'graph.microsoft.com',
 
         [Parameter()]
-        [string]$ArmRequestHostOverride = 'management.azure.com'
+        [string]$ArmRequestHostOverride = 'management.azure.com',
+
+        [Parameter()]
+        [AllowNull()]
+        [string]$KnownAbusedAppListPath
     )
 
     $collectionStartUtc = (Get-Date).ToUniversalTime().ToString('o')
@@ -336,6 +363,67 @@ function Invoke-EntraPostureCollectAndSeal {
         }
     }
 
+    # Known-abused-app list (ENT-013's own reference data, VNext §46): a local file read, not a
+    # Graph/ARM call -- deliberately NOT run through Test-EntraPosturePreflight/
+    # GraphCollectorDispatch.ps1 (both assume a token-authenticated network call; there's no
+    # permission concept here at all). Emits AT MOST one coverage record, and only when there's
+    # something real to report -- see this function's own .PARAMETER KnownAbusedAppListPath for
+    # why "no file present" contributes nothing to coverage.collectors (never 'Unavailable')
+    # while "file present but unparseable" does (a real, actionable 'Malformed').
+    $knownAbusedAppCoverage = $null
+    if (-not [string]::IsNullOrWhiteSpace($KnownAbusedAppListPath) -and (Test-Path -LiteralPath $KnownAbusedAppListPath -PathType Leaf)) {
+        $collectedAtLocal = (Get-Date).ToUniversalTime().ToString('o')
+        $collectorVersionLocal = (Get-EntraPostureToolVersionInfo).ToolVersion
+        try {
+            $rawToml = Get-Content -LiteralPath $KnownAbusedAppListPath -Raw
+            $parsedApps = ConvertFrom-EntraPostureRogueAppsToml -RawToml $rawToml
+
+            $metaPath = [System.IO.Path]::ChangeExtension($KnownAbusedAppListPath, '.meta.json')
+            $commitDateUtc = $null
+            $fetchedAtUtc = $null
+            if (Test-Path -LiteralPath $metaPath -PathType Leaf) {
+                try {
+                    $sidecarMeta = ConvertFrom-EntraPostureJson -Json (Get-Content -LiteralPath $metaPath -Raw)
+                    $commitDateUtc = $sidecarMeta.commitDateUtc
+                    $fetchedAtUtc = $sidecarMeta.fetchedAtUtc
+                } catch {
+                    Write-Warning "Invoke-EntraPostureCollectAndSeal: sidecar '$metaPath' could not be read as JSON ($($_.Exception.Message)) -- freshness metadata will be unknown in ENT-013's own findings."
+                }
+            }
+
+            foreach ($app in $parsedApps) {
+                $entities.Add((ConvertTo-EntraPostureKnownAbusedAppEntity -App $app -TenantScope $TenantScope -CollectorVersion $collectorVersionLocal -SourceEndpoint $KnownAbusedAppListPath -CollectedAt $collectedAtLocal))
+            }
+            $entities.Add((ConvertTo-EntraPostureKnownAbusedAppListMetadataEntity -FilePath $KnownAbusedAppListPath -CommitDateUtc $commitDateUtc -FetchedAtUtc $fetchedAtUtc -AppCount $parsedApps.Count -TenantScope $TenantScope -CollectorVersion $collectorVersionLocal -SourceEndpoint $KnownAbusedAppListPath -CollectedAt $collectedAtLocal))
+
+            $knownAbusedAppCoverage = [ordered]@{
+                collectorName          = 'KnownAbusedAppList'
+                accessRequested        = @()
+                rightsPresentInToken   = @()
+                rightsExpected         = @()
+                accessVerified         = $true
+                evidenceStatus         = 'Collected'
+                affectedControlIds     = @('ENT-013')
+                affectedReportSections = @('Applications')
+            }
+        } catch {
+            Write-Warning "Invoke-EntraPostureCollectAndSeal: '$KnownAbusedAppListPath' exists but could not be parsed as a rogueapps.toml-shaped file ($($_.Exception.Message)) -- ENT-013 will be NotEvaluated for this snapshot."
+            $collectionErrors.Add("Collector 'KnownAbusedAppList' failed: $($_.Exception.Message)")
+            $knownAbusedAppCoverage = [ordered]@{
+                collectorName          = 'KnownAbusedAppList'
+                accessRequested        = @()
+                rightsPresentInToken   = @()
+                rightsExpected         = @()
+                accessVerified         = $false
+                evidenceStatus         = 'Malformed'
+                affectedControlIds     = @('ENT-013')
+                affectedReportSections = @('Applications')
+            }
+        }
+    } elseif (-not [string]::IsNullOrWhiteSpace($KnownAbusedAppListPath)) {
+        Write-Warning "Invoke-EntraPostureCollectAndSeal: '$KnownAbusedAppListPath' does not exist -- ENT-013 will be NotEvaluated for this snapshot (not counted as Partial; this is an optional reference-data domain, not a required evidence gap)."
+    }
+
     # Recompute both preflight passes now that EndpointVerificationResults reflects what
     # actually happened, not just what looked possible from token claims alone.
     $graphCoverage = Test-EntraPosturePreflight -CollectorRequirements $graphRequirements -GrantedPermissions $GraphGrantedPermissions -EndpointVerificationResults $verificationResults
@@ -346,8 +434,9 @@ function Invoke-EntraPostureCollectAndSeal {
     $armGrantedForCoverage = @(if ($ArmAccessToken) { $ArmGrantedPermissions } else { @() })
     $armCoverage = Test-EntraPosturePreflight -CollectorRequirements $armRequirements -GrantedPermissions $armGrantedForCoverage -EndpointVerificationResults $verificationResults
 
+    $knownAbusedAppCoverageArray = @(if ($knownAbusedAppCoverage) { $knownAbusedAppCoverage })
     $mergedCoverage = [ordered]@{
-        collectors = @(@($graphCoverage.collectors) + @($armCoverage.collectors))
+        collectors = @(@($graphCoverage.collectors) + @($armCoverage.collectors) + $knownAbusedAppCoverageArray)
     }
 
     $isPartial = @($mergedCoverage.collectors | Where-Object { $_.evidenceStatus -ne 'Collected' }).Count -gt 0

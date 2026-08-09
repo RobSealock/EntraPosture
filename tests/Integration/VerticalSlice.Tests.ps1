@@ -19,6 +19,7 @@ BeforeAll {
     foreach ($relPath in @(
         'src/Common/ExitCode.ps1', 'src/Common/NewCorrelationId.ps1', 'src/Common/NewErrorRecord.ps1',
         'src/Common/CanonicalJson.ps1', 'src/Common/ToolVersionInfo.ps1',
+        'src/Common/ParseRogueAppsToml.ps1', 'src/Common/KnownAbusedAppListPath.ps1',
         'src/Logging/WriteLog.ps1',
         'src/Validation/StrictJson.ps1', 'src/Validation/TestSchema.ps1',
         'src/Integrity/FileHash.ps1', 'src/Integrity/AggregateHash.ps1', 'src/Integrity/DetachedSignature.ps1',
@@ -48,6 +49,7 @@ BeforeAll {
         'src/Normalization/NormalizeGroupSettings.ps1', 'src/Normalization/NormalizeUserSignInActivity.ps1',
         'src/Normalization/NormalizeServicePrincipalApiPermissions.ps1',
         'src/Normalization/NormalizeUserRegistrationDetails.ps1', 'src/Normalization/NormalizeRoleAssignmentScope.ps1',
+        'src/Normalization/NormalizeKnownAbusedApp.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -86,6 +88,7 @@ BeforeAll {
         'src/Controls/EvaluateSignInRiskManagement.ps1', 'src/Controls/EvaluateUserRiskManagement.ps1',
         'src/Controls/EvaluateBroadMfaEnforcement.ps1', 'src/Controls/EvaluateTierZeroRoleCaCoverage.ps1',
         'src/Controls/EvaluateGuestInviteRestriction.ps1', 'src/Controls/EvaluateCaPolicyScopedRoleAssignment.ps1',
+        'src/Controls/EvaluateKnownAbusedApp.ps1',
         'src/Reporting/BuildAssessmentDocument.ps1', 'src/Reporting/RedactionApplication.ps1',
         'src/ConditionalAccess/ScenarioModel.ps1', 'src/ConditionalAccess/GenerateCombinatorialScenarios.ps1',
         'src/Reporting/RenderHtmlReport.ps1', 'src/Reporting/RenderCsvReport.ps1', 'src/Reporting/RenderConsoleReport.ps1', 'src/Reporting/CompareAssessment.ps1',
@@ -173,6 +176,8 @@ BeforeAll {
         param([string]$HostHeader)
         return @(
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/directoryRoles';                          ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/servicePrincipals/{spId}/owners';         ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
+            [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/servicePrincipals/{spId}/ownedObjects';   ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/directoryRoles/{roleId}/members';         ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/identity/conditionalAccess/policies';     ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
             [ordered]@{ Host = $HostHeader; PathTemplate = '/v1.0/policies/crossTenantAccessPolicy';        ApiStability = 'Stable'; Method = 'GET'; ReadOnlyClassification = $null; Description = 'test' }
@@ -217,6 +222,14 @@ BeforeAll {
     }
 
     $script:GaRoleId = '62e90394-69f5-4237-9190-012177145e10'
+
+    # Deterministic, guaranteed-nonexistent path -- every New-EntraPostureSnapshot/
+    # Invoke-EntraPosture call in this file passes this explicitly so ENT-013's own optional
+    # known-abused-app domain never picks up this repo's real committed data/known-abused-apps.toml
+    # (its own auto-default would otherwise leak real, mutable seed content into these
+    # deterministic exit-code/coverage assertions -- the same reason every other test-only
+    # -Override parameter in this file exists).
+    $script:NoKnownAbusedAppListPath = Join-Path ([System.IO.Path]::GetTempPath()) "vslice-no-known-abused-apps-$([guid]::NewGuid()).toml"
 
     # Every Graph permission across all fourteen Phase 5/6 Graph collectors, and every ARM
     # permission across all four ARM collectors -- used by test scenarios whose intent is "every
@@ -343,7 +356,8 @@ Describe 'Collect and seal (live path against a real local mock server)' {
                 -RunRoot $script:RunRoot -ArmScope '/subscriptions/sub-1' `
                 -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $armToken }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
 
             $result.Manifest.status | Should -Be 'Sealed'
             @($result.Coverage.collectors | Where-Object { $_.evidenceStatus -ne 'Collected' }).Count | Should -Be 0
@@ -358,6 +372,67 @@ Describe 'Collect and seal (live path against a real local mock server)' {
             $assignmentLines.Count | Should -Be 3
 
             $script:SealedSnapshotPath = $result.SnapshotPath
+        } finally {
+            Stop-VerticalSliceMockServer -Server $server
+        }
+    }
+
+    It 'collects the real vendored known-abused-app seed file end to end, and ENT-013 evaluates a matching service principal as Fail' {
+        $seedPath = Join-Path $script:RepoRoot 'data/known-abused-apps.toml'
+        $rawSeed = Get-Content -LiteralPath $seedPath -Raw
+        $firstAppIdMatch = [regex]::Match($rawSeed, 'appId = "([^"]+)"')
+        $firstAppIdMatch.Success | Should -BeTrue -Because 'the real vendored seed file should have at least one app entry to test against'
+        $knownBadAppId = $firstAppIdMatch.Groups[1].Value
+
+        $responseMap = Get-VerticalSliceResponseMap -GlobalAdminCount 3
+        $responseMap['/v1.0/servicePrincipals'] = "{`"value`":[{`"id`":`"sp-known-bad`",`"appId`":`"$knownBadAppId`",`"displayName`":`"Known Bad`",`"servicePrincipalType`":`"Application`",`"accountEnabled`":true,`"appOwnerOrganizationId`":`"foreign-tenant`",`"tags`":[]}]}"
+        $responseMap['/v1.0/servicePrincipals/sp-known-bad/owners'] = '{"value":[]}'
+        $responseMap['/v1.0/servicePrincipals/sp-known-bad/ownedObjects'] = '{"value":[]}'
+
+        $server = Start-VerticalSliceMockServer -ResponseMap $responseMap
+        try {
+            $allowlist = Get-VerticalSliceAllowlist -HostHeader $server.HostHeader
+            $graphToken = New-TestAccessToken -Roles (Get-VerticalSliceFullGraphPermissions)
+
+            $result = New-EntraPostureSnapshot -TenantId 'tenant-1' -ClientId 'client-1' -AuthMode Certificate `
+                -RunRoot $script:RunRoot `
+                -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $null }) `
+                -AllowlistOverride $allowlist -SchemeOverride 'http' `
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $seedPath
+
+            $knownAppCoverage = $result.Coverage.collectors | Where-Object { $_.collectorName -eq 'KnownAbusedAppList' }
+            $knownAppCoverage.evidenceStatus | Should -Be 'Collected'
+
+            $evalResult = Invoke-EntraPostureEvaluation -SnapshotPath $result.SnapshotPath -RunRoot $script:RunRoot
+            $ent013Result = $evalResult.Results | Where-Object { $_.controlId -eq 'ENT-013' -and $_.scope -eq 'sp-known-bad' }
+            $ent013Result.status | Should -Be 'Fail'
+            $ent013Result.reasonCode | Should -Be 'ENT-013-KNOWN-ABUSED-APP-MATCH'
+        } finally {
+            Stop-VerticalSliceMockServer -Server $server
+        }
+    }
+
+    It 'marks the KnownAbusedAppList domain Malformed (and the snapshot Partial) when a configured file exists but fails to parse' {
+        $brokenPath = Join-Path $script:RunRoot 'broken-known-abused-apps.toml'
+        [System.IO.File]::WriteAllText($brokenPath, "[[apps]]`nappId = `"unterminated", [System.Text.UTF8Encoding]::new($false))
+
+        $responseMap = Get-VerticalSliceResponseMap -GlobalAdminCount 3
+        $server = Start-VerticalSliceMockServer -ResponseMap $responseMap
+        try {
+            $allowlist = Get-VerticalSliceAllowlist -HostHeader $server.HostHeader
+            $graphToken = New-TestAccessToken -Roles (Get-VerticalSliceFullGraphPermissions)
+
+            $result = New-EntraPostureSnapshot -TenantId 'tenant-1' -ClientId 'client-1' -AuthMode Certificate `
+                -RunRoot $script:RunRoot `
+                -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $null }) `
+                -AllowlistOverride $allowlist -SchemeOverride 'http' `
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $brokenPath -WarningAction SilentlyContinue
+
+            $result.Manifest.status | Should -Be 'Partial'
+            $knownAppCoverage = $result.Coverage.collectors | Where-Object { $_.collectorName -eq 'KnownAbusedAppList' }
+            $knownAppCoverage.evidenceStatus | Should -Be 'Malformed'
         } finally {
             Stop-VerticalSliceMockServer -Server $server
         }
@@ -388,7 +463,8 @@ Describe 'Collect and seal (live path against a real local mock server)' {
                 -RunRoot $script:RunRoot `
                 -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $armToken }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
 
             $result.Manifest.status | Should -Be 'Sealed'
 
@@ -415,7 +491,8 @@ Describe 'Collect and seal (live path against a real local mock server)' {
                 -RunRoot $script:RunRoot `
                 -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $null }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
 
             $result.Manifest.status | Should -Be 'Partial'
             $result.Manifest.partialReason | Should -Match 'AzureRoleAssignments'
@@ -444,7 +521,8 @@ Describe 'Collect and seal (live path against a real local mock server)' {
                 -RunRoot $script:RunRoot `
                 -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $null }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
 
             $result.Manifest.status | Should -Be 'Partial'
             $roleCollector = $result.Coverage.collectors | Where-Object { $_.collectorName -eq 'DirectoryRoleAssignments' }
@@ -472,7 +550,8 @@ Describe 'Evaluate and report (offline path -- mock server stopped before this D
                 -RunRoot $script:OfflineRunRoot `
                 -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $null }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
         } finally {
             Stop-VerticalSliceMockServer -Server $server
         }
@@ -602,7 +681,8 @@ Describe 'Compare-EntraPosture (Phase 9): end-to-end bundle-loading and trust-ve
                     -RunRoot $script:CompareRunRoot `
                     -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $null }) `
                     -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                    -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                    -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
             } finally {
                 Stop-VerticalSliceMockServer -Server $server
             }
@@ -685,7 +765,8 @@ Describe 'Exit codes (engineering plan section 11 priority table, exercised thro
             $result = Invoke-EntraPosture -TenantId 'tenant-1' -ClientId 'client-1' -AuthMode Certificate -RunRoot $script:ExitCodeRunRoot `
                 -ArmScope '/subscriptions/sub-1' -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $armToken }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
 
             $result.ExitCode | Should -Be 2
             $global:LASTEXITCODE | Should -Be 2
@@ -705,7 +786,8 @@ Describe 'Exit codes (engineering plan section 11 priority table, exercised thro
             $result = Invoke-EntraPosture -TenantId 'tenant-1' -ClientId 'client-1' -AuthMode Certificate -RunRoot $script:ExitCodeRunRoot `
                 -ArmScope '/subscriptions/sub-1' -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $armToken }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
 
             $result.ExitCode | Should -Be 0
             $global:LASTEXITCODE | Should -Be 0
@@ -727,7 +809,8 @@ Describe 'Exit codes (engineering plan section 11 priority table, exercised thro
             $result = Invoke-EntraPosture -TenantId 'tenant-1' -ClientId 'client-1' -AuthMode Certificate -RunRoot $script:ExitCodeRunRoot `
                 -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $null }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
 
             $result.ExitCode | Should -Be 3
             $global:LASTEXITCODE | Should -Be 3
@@ -762,13 +845,15 @@ Describe 'Exit codes (engineering plan section 11 priority table, exercised thro
             $nonStrictResult = Invoke-EntraPosture -TenantId 'tenant-1' -ClientId 'client-1' -AuthMode Certificate -RunRoot $script:ExitCodeRunRoot `
                 -ArmScope '/subscriptions/sub-1' -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $armToken }) -DeviationsPath $deviationsPath `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
             $nonStrictResult.ExitCode | Should -Be 0
 
             $strictResult = Invoke-EntraPosture -TenantId 'tenant-1' -ClientId 'client-1' -AuthMode Certificate -RunRoot $script:ExitCodeRunRoot `
                 -ArmScope '/subscriptions/sub-1' -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $armToken }) -DeviationsPath $deviationsPath -Strict `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath $script:NoKnownAbusedAppListPath
             $strictResult.ExitCode | Should -Be 2
         } finally {
             Stop-VerticalSliceMockServer -Server $server

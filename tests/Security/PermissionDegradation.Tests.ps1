@@ -20,6 +20,7 @@ BeforeAll {
     foreach ($relPath in @(
         'src/Common/ExitCode.ps1', 'src/Common/NewCorrelationId.ps1', 'src/Common/NewErrorRecord.ps1',
         'src/Common/CanonicalJson.ps1', 'src/Common/ToolVersionInfo.ps1',
+        'src/Common/ParseRogueAppsToml.ps1', 'src/Common/KnownAbusedAppListPath.ps1',
         'src/Logging/WriteLog.ps1',
         'src/Validation/StrictJson.ps1', 'src/Validation/TestSchema.ps1',
         'src/Integrity/FileHash.ps1', 'src/Integrity/AggregateHash.ps1', 'src/Integrity/DetachedSignature.ps1',
@@ -49,6 +50,7 @@ BeforeAll {
         'src/Normalization/NormalizeGroupSettings.ps1', 'src/Normalization/NormalizeUserSignInActivity.ps1',
         'src/Normalization/NormalizeServicePrincipalApiPermissions.ps1',
         'src/Normalization/NormalizeUserRegistrationDetails.ps1', 'src/Normalization/NormalizeRoleAssignmentScope.ps1',
+        'src/Normalization/NormalizeKnownAbusedApp.ps1',
         'src/Collectors/CollectDirectoryRoles.ps1', 'src/Collectors/CollectAzureRoleAssignments.ps1',
         'src/Collectors/CollectConditionalAccessPolicies.ps1', 'src/Collectors/CollectCrossTenantAccessPolicy.ps1',
         'src/Collectors/CollectUsers.ps1', 'src/Collectors/CollectGroups.ps1',
@@ -225,7 +227,8 @@ Describe 'Global Reader-shaped identity: the two documented coverage gaps are ex
                 -RunRoot ([System.IO.Path]::GetTempPath()) `
                 -AccessTokenOverride ([ordered]@{ Graph = $graphToken; Arm = $null }) `
                 -AllowlistOverride $allowlist -SchemeOverride 'http' `
-                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader
+                -GraphRequestHostOverride $server.HostHeader -ArmRequestHostOverride $server.HostHeader `
+                -KnownAbusedAppListPath (Join-Path ([System.IO.Path]::GetTempPath()) "permdegrade-no-known-abused-apps-$([guid]::NewGuid()).toml")
 
             try {
                 $accessReviewCollector = $result.Coverage.collectors | Where-Object { $_.collectorName -eq 'AccessReviewDefinitions' }

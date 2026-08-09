@@ -197,37 +197,61 @@ deliberately instead of incidentally.
    `DirectoryRole`'s own entityId already uses) has at least one AU-scoped assignment. 92 controls
    now ship (up from 91).
 
-   Five canonical findings remain deferred, each still with a documented, specific reason:
-   `ENT-002`/`AGT-010`/`AGT-016` (beta-only `servicePrincipalSignInActivity`); `USR-013` (no
-   crisp "unnecessary sync" threshold); `ENT-013` (no citable malicious-app signature source).
-   With this, the ranked-value ordering the project owner approved is fully worked through: 5 of
-   the original 10 deferred findings were buildable and are now built (`USR-012`, `USR-009`,
-   `USR-010`, `USR-011`, `CAP-011`); the remaining 5 stay deferred for the reasons stated above,
-   `ENT-002`/`AGT-010`/`AGT-016` being the genuine blocker this ranked-order pass was always
-   expected to stop at -- see `00-open-questions.md` §44 for the full close-out.
+   Five canonical findings remained deferred at this point, each with a documented, specific
+   reason: `ENT-002`/`AGT-010`/`AGT-016` (beta-only `servicePrincipalSignInActivity`); `USR-013`
+   (no crisp "unnecessary sync" threshold); `ENT-013` (no citable malicious-app signature
+   source). 5 of the original 10 deferred findings were buildable and shipped this pass
+   (`USR-012`, `USR-009`, `USR-010`, `USR-011`, `CAP-011`) -- see `00-open-questions.md` §44 for
+   the full close-out of that ranked-order thread.
 
    **`ENT-013` groundwork, same day** (`00-open-questions.md` §45): the "no citable malicious-app
-   signature source" reason `ENT-013` was deferred for no longer fully holds -- the project owner
+   signature source" reason `ENT-013` was deferred for no longer held -- the project owner
    surfaced `huntresslabs/rogueapps` (MPL-2.0, actively maintained), a structured, GUID-keyed
-   dataset of applications observed being abused in real compromises. Built the groundwork this
-   session: a bounded TOML-subset parser (`ConvertFrom-EntraPostureRogueAppsToml`, deliberately
-   NOT a general TOML implementation -- see its own header comment for the exact subset it
-   accepts and why it throws rather than guesses on anything outside that subset) and a new
-   public cmdlet, `Update-EntraPostureKnownAbusedAppList`, that manages a local vendored copy
-   under `data/` with inspect-before-save (`-Fetch` previews an add/remove diff without writing)
-   and manual-copy (`-Path`) modes, plus a staleness check against GitHub's own commit history for
-   that file. This is the one deliberate exception to this project's "no runtime-downloaded data"
-   guarantee (docs/SecurityAndStorage.md now documents it explicitly) -- and specifically an
-   exception you must invoke yourself; the core assessment pipeline never calls it. **`ENT-013`
-   itself is still not a built control** -- this pass only ships the data-management
-   infrastructure, deliberately kept separate from the harder architectural question of how a
-   control reads it: reading the local file directly at evaluation time would bypass this
-   project's evidence-immutability model (a sealed snapshot's own control results could then
-   change depending on when it's re-evaluated), so the correct shape is a local-file "collector"
-   that runs at collection time and bakes a `KnownAbusedApp` entity into the snapshot like every
-   other evidence domain -- a real orchestration-layer addition (today's collector model assumes
-   every collector is either a Graph or ARM network call) deserving its own dedicated pass, not
-   one to rush into the same session. 92 controls (unchanged).
+   dataset of applications observed being abused in real compromises. Built a bounded TOML-subset
+   parser (`ConvertFrom-EntraPostureRogueAppsToml`, deliberately NOT a general TOML implementation
+   -- see its own header comment for the exact subset it accepts and why it throws rather than
+   guesses on anything outside that subset) and a new public cmdlet,
+   `Update-EntraPostureKnownAbusedAppList`, that manages a local vendored copy under `data/` with
+   inspect-before-save (`-Fetch` previews an add/remove diff without writing) and manual-copy
+   (`-Path`) modes, plus a staleness check against GitHub's own commit history for that file. This
+   is the one deliberate exception to this project's "no runtime-downloaded data" guarantee
+   (`docs/SecurityAndStorage.md` documents it explicitly) -- and specifically an exception you
+   must invoke yourself; the core assessment pipeline never calls it.
+
+   **`ENT-013` itself, immediately after** (`00-open-questions.md` §46): reading the local file
+   directly at evaluation time was considered and rejected -- it would let a sealed snapshot's own
+   control result change between two evaluations of identical evidence, depending only on the
+   local file's mutable state at evaluation time, breaking the evidence-immutability guarantee
+   every other control relies on. Built instead as a genuine collection-time step in
+   `Invoke-EntraPostureCollectAndSeal` (a local file read, not a Graph/ARM call -- deliberately not
+   forced through `Test-EntraPosturePreflight`/`GraphCollectorDispatch.ps1`, both of which assume
+   a token-authenticated network call), producing new `KnownAbusedApp`/`KnownAbusedAppListMetadata`
+   entities exactly like any other evidence domain. New `-KnownAbusedAppListPath` parameter on
+   `New-EntraPostureSnapshot`/`Invoke-EntraPosture`, defaulting to
+   `Get-EntraPostureKnownAbusedAppListPath`'s own resolved location when omitted.
+
+   Two real design bugs surfaced and were fixed before this shipped, both documented at length in
+   `00-open-questions.md` §46: (1) `Get-EntraPostureRunExitCode`'s own priority table forces exit
+   code 3 (Partial) for *any* `NotEvaluated` result, independent of the snapshot's own `IsPartial`
+   flag -- since nobody would configure this optional domain by default, an early draft would have
+   silently flipped every existing automated pipeline's exit code the moment this shipped. Fixed by
+   never emitting a coverage record at all when the file simply isn't present (only a real parse
+   failure, `Malformed`, counts toward Partial), and by decoupling `ENT-013`'s own gating from the
+   optional domain entirely -- it now evaluates unconditionally off `ServicePrincipal`'s own
+   coverage, with the evaluator itself returning `NotApplicable` ("nothing was checked") rather
+   than a vacuous Pass when no reference data is available. (2) `requiredEvidenceDomains` in a
+   control's own `.psd1` turned out to have **no effect at all** on `Invoke-EntraPostureSnapshot
+   Evaluation`'s real Complete/Partial gating -- that mechanism is driven entirely by which
+   *collector* declares a controlId in its own `AffectedControlIds`, discovered only after a first
+   draft (declaring the domains in the `.psd1` instead) produced a result with a null `reasonCode`
+   and failed schema validation. `CollectServicePrincipals.ps1` now declares `ENT-013` in its own
+   `AffectedControlIds`; `KnownAbusedAppList`'s own hand-built coverage record does too, so a
+   genuinely broken (not just unconfigured) list still correctly drives `ENT-013` to
+   `NotEvaluated` and the whole snapshot Partial. 93 controls now ship (up from 92).
+
+   Four canonical findings remain deferred: `ENT-002`/`AGT-010`/`AGT-016` (beta-only
+   `servicePrincipalSignInActivity` -- the genuine blocker this whole ranked-order thread was
+   always expected to stop at) and `USR-013` (no crisp "unnecessary sync" threshold).
 3. ~~**Workload identity / service-principal CA scenarios**~~ -- **done 2026-08-07**, see the
    "Conditional Access subsystem" section below.
 4. ~~**Named-location resolution**~~ -- **done 2026-08-07**, see the "Conditional Access

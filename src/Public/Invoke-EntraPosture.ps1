@@ -49,6 +49,11 @@ function Invoke-EntraPosture {
         Test-only, forwarded to New-EntraPostureSnapshot. See that command's parameters of
         the same names.
 
+        .PARAMETER KnownAbusedAppListPath
+        Optional -- forwarded to New-EntraPostureSnapshot. Omitted here means omitted there too,
+        which resolves to that command's own default vendored-data location; see its parameter
+        docs for the full resolution story (ENT-013).
+
         .OUTPUTS
         Ordered dictionary: ExitCode, SnapshotPath, AssessmentPath, Results, Coverage,
         HtmlReportPath, CsvReportPath, ConsoleReportPath, AssessmentJsonPath.
@@ -108,7 +113,11 @@ function Invoke-EntraPosture {
         [string]$GraphRequestHostOverride = 'graph.microsoft.com',
 
         [Parameter()]
-        [string]$ArmRequestHostOverride = 'management.azure.com'
+        [string]$ArmRequestHostOverride = 'management.azure.com',
+
+        [Parameter()]
+        [AllowNull()]
+        [string]$KnownAbusedAppListPath
     )
 
     $snapshotResult = $null
@@ -129,6 +138,7 @@ function Invoke-EntraPosture {
         if ($SigningCertificate) { $snapshotParams['SigningCertificate'] = $SigningCertificate }
         if ($AccessTokenOverride) { $snapshotParams['AccessTokenOverride'] = $AccessTokenOverride }
         if ($AllowlistOverride) { $snapshotParams['AllowlistOverride'] = $AllowlistOverride }
+        if ($KnownAbusedAppListPath) { $snapshotParams['KnownAbusedAppListPath'] = $KnownAbusedAppListPath }
 
         $snapshotResult = New-EntraPostureSnapshot @snapshotParams
     } catch {

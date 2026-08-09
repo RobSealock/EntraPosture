@@ -20,7 +20,7 @@ operation exists anywhere in this codebase).
 | `User.Read.All` | Users | Identity | USR-006/007/008/009/010/011 |
 | `Group.Read.All` | Groups | Identity | GRP-003/004/005, USR-006, USR-009/010/011 |
 | `GroupMember.Read.All` | Groups | Identity | GRP-005, USR-009/010/011 |
-| `Application.Read.All` | Applications, ServicePrincipals, ServicePrincipalApiPermissions | Applications | APP-001/002/003, ENT-001/003/004/006/007/008/009/010/011/012, AGT-002/003/006/007, MAI-001/002/003 |
+| `Application.Read.All` | Applications, ServicePrincipals, ServicePrincipalApiPermissions | Applications | APP-001/002/003, ENT-001/003/004/006/007/008/009/010/011/012/013, AGT-002/003/006/007, MAI-001/002/003 |
 | `AdministrativeUnit.Read.All` | AdministrativeUnits | Identity | *(breadth collector -- no control depends on it directly yet)* |
 | `AccessReview.Read.All` | AccessReviewDefinitions | Access Reviews | AR-001, AR-002 |
 | `AuthenticationContext.Read.All` | AuthenticationContexts | Conditional Access | AUTHCTX-001, AUTHCTX-002 |
@@ -85,6 +85,12 @@ evidence domain short of its own declared requirement (`evidenceStatus` `Incompl
 `Collected`), so every control depending on it -- `ENT-004`/`005`/`009`/`010`,
 `AGT-002`/`003`/`006`/`007`, `MAI-001` -- is affected, not just the delegated-permission half's
 own controls. Grant both scopes together to collect this domain fully.
+**`ENT-013` needs no Graph/ARM permission of its own beyond `Application.Read.All`** (already
+required for `ServicePrincipals`) -- its own reference data (`KnownAbusedAppList`) is a local
+file read, not a tenant API call, so there's no permission to grant for it at all. It always
+evaluates off `ServicePrincipals`' own coverage; with no local list configured, it reports
+`NotApplicable`, never `NotEvaluated` or a silent Pass -- see the README's own "Reference data
+refresh" section and `Update-EntraPostureKnownAbusedAppList`.
 **`RoleAssignmentScopes` (CAP-011) is fully covered by Global Reader**, unlike several of the
 gaps above -- the live "List unifiedRoleAssignments" Graph reference page names Global Reader
 directly as a supported built-in role for `GET /roleManagement/directory/roleAssignments`, and

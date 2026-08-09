@@ -27,7 +27,7 @@
         "RoleManagementPolicyAssignment",
         "AgentIdentityBlueprint", "AgentIdentityBlueprintPrincipal", "AgentIdentity", "AgentUser",
         "GroupSetting", "UserSignInActivity", "ServicePrincipalApiPermissions",
-        "UserRegistrationDetails"
+        "UserRegistrationDetails", "KnownAbusedApp", "KnownAbusedAppListMetadata"
       ]
     },
     "tenantScope": {

@@ -26,7 +26,9 @@ BeforeAll {
         'src/Controls/EvaluateAzureLeastPrivilege.ps1',
         'src/Controls/EvaluateWeakProtectionEntraRole.ps1',
         'src/Controls/EvaluateWeakProtectionAzureRole.ps1',
-        'src/Controls/EvaluateCaPolicyScopedRoleAssignment.ps1'
+        'src/Controls/EvaluateCaPolicyScopedRoleAssignment.ps1',
+        'src/Common/ParseRogueAppsToml.ps1', 'src/Normalization/NormalizeKnownAbusedApp.ps1',
+        'src/Controls/EvaluateKnownAbusedApp.ps1'
     )) {
         . (Join-Path $script:RepoRoot $relPath)
     }
@@ -154,6 +156,36 @@ BeforeAll {
             relationshipType = 'RoleAssignmentScope'; assignmentState = 'Active'; scope = $Scope
             provenance = [ordered]@{ collectorVersion = '0.1.0'; sourceEndpoint = 'x'; collectedAt = '2026-01-01T00:00:00Z' }
             validity = [ordered]@{ startDateTime = $null; endDateTime = $null; isTransitive = $false }
+        }
+    }
+
+    function script:New-TestServicePrincipalEntity {
+        param([string]$Id, [string]$AppId, [string]$DisplayName = $null)
+        return [ordered]@{
+            entityId = $Id; entityType = 'ServicePrincipal'; tenantScope = 't1'; displayName = $(if ($DisplayName) { $DisplayName } else { $Id })
+            collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false
+            properties = [ordered]@{ appId = $AppId }
+        }
+    }
+
+    function script:New-TestKnownAbusedAppEntity {
+        param([string]$AppId, [string]$DisplayName, [string]$Description = 'test description')
+        return [ordered]@{
+            entityId = $AppId; entityType = 'KnownAbusedApp'; tenantScope = 't1'; displayName = $DisplayName
+            collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false
+            properties = [ordered]@{
+                appOwnerOrganizationId = 'org-1'; appPublisherName = 'Publisher'; appPublisherId = 'pub-1'
+                description = $Description; tags = @('BEC'); references = @(); dateAdded = '2024-01-01'
+            }
+        }
+    }
+
+    function script:New-TestKnownAbusedAppListMetadataEntity {
+        param([string]$FilePath = '/path/to/known-abused-apps.toml', [string]$CommitDateUtc = $null, [string]$FetchedAtUtc = $null, [int]$AppCount = 1)
+        return [ordered]@{
+            entityId = 'default'; entityType = 'KnownAbusedAppListMetadata'; tenantScope = 't1'; displayName = $null
+            collectedAt = '2026-01-01T00:00:00Z'; collectorVersion = '0.1.0'; sourceEndpoint = 'x'; redacted = $false
+            properties = [ordered]@{ filePath = $FilePath; commitDateUtc = $CommitDateUtc; fetchedAtUtc = $FetchedAtUtc; appCount = $AppCount }
         }
     }
 
@@ -502,5 +534,52 @@ Describe 'CAP-011: Test-EntraPostureCaPolicyScopedRoleAssignmentControl' {
         $result = Test-EntraPostureCaPolicyScopedRoleAssignmentControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
         $result[0].Status | Should -Be 'NotApplicable'
         $result[0].ReasonCode | Should -Be 'CAP-011-NO-ROLE-SCOPED-POLICIES'
+    }
+}
+
+Describe 'ENT-013: Test-EntraPostureKnownAbusedAppControl' {
+    It 'fails a service principal whose appId matches a known-abused-app entry, passes one that does not' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-service-principals.jsonl' -Records @(
+            (New-TestServicePrincipalEntity -Id 'sp-bad' -AppId 'app-bad' -DisplayName 'Bad App'),
+            (New-TestServicePrincipalEntity -Id 'sp-good' -AppId 'app-good' -DisplayName 'Good App')
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/known-abused-apps.jsonl' -Records @(
+            (New-TestKnownAbusedAppEntity -AppId 'app-bad' -DisplayName 'Known Bad App' -Description 'Exfiltrates mailboxes.')
+        )
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/known-abused-app-list-metadata.jsonl' -Records @(
+            (New-TestKnownAbusedAppListMetadataEntity -CommitDateUtc '2026-04-07T14:45:48Z' -AppCount 1)
+        )
+        $result = Test-EntraPostureKnownAbusedAppControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $badResult = $result | Where-Object { $_.Scope -eq 'sp-bad' }
+        $badResult.Status | Should -Be 'Fail'
+        $badResult.ReasonCode | Should -Be 'ENT-013-KNOWN-ABUSED-APP-MATCH'
+        $badResult.Rationale | Should -Match 'Known Bad App'
+        $badResult.Rationale | Should -Match 'does not confirm malicious intent'
+        $badResult.Rationale | Should -Match '2026-04-07T14:45:48Z'
+
+        $goodResult = $result | Where-Object { $_.Scope -eq 'sp-good' }
+        $goodResult.Status | Should -Be 'Pass'
+        $goodResult.ReasonCode | Should -Be 'ENT-013-NO-KNOWN-ABUSED-APP-MATCH'
+    }
+
+    It 'is NotApplicable when no ServicePrincipal entity exists' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/known-abused-apps.jsonl' -Records @(
+            (New-TestKnownAbusedAppEntity -AppId 'app-bad' -DisplayName 'Known Bad App')
+        )
+        $result = Test-EntraPostureKnownAbusedAppControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $result[0].Status | Should -Be 'NotApplicable'
+        $result[0].ReasonCode | Should -Be 'ENT-013-NO-SERVICE-PRINCIPALS'
+    }
+
+    It 'is NotApplicable (not a vacuous Pass) when no known-abused-app reference data was ever configured' {
+        $dir = New-TestSnapshotDir
+        Write-TestEvidenceFile -Dir $dir -RelativePath 'evidence/entra-service-principals.jsonl' -Records @(
+            (New-TestServicePrincipalEntity -Id 'sp-1' -AppId 'app-1')
+        )
+        $result = Test-EntraPostureKnownAbusedAppControl -EvidenceProvider (New-EntraPostureEvidenceProvider -SnapshotPath $dir)
+        $result[0].Status | Should -Be 'NotApplicable'
+        $result[0].ReasonCode | Should -Be 'ENT-013-NO-REFERENCE-DATA'
     }
 }
